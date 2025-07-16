@@ -137,12 +137,12 @@ void insert_debug_info_inner(SrcLocation loc, ASTNodeKind kind, CodeBlob& code) 
   }
 
   auto& op = code.emplace_back(loc, Op::_DebugInfo);
-  auto info = DebugInfo{};
-
   op.debug_idx = G.debug_infos.size();
+
+  auto info = DebugInfo{};
   info.idx = op.debug_idx;
 
-  if (const auto src_file = loc.get_src_file(); src_file != nullptr) {
+  if (const SrcFile* src_file = loc.get_src_file(); src_file != nullptr) {
     const auto& pos = src_file->convert_offset(loc.get_char_offset());
 
     info.loc_file = src_file->realpath;
@@ -2330,7 +2330,7 @@ static void process_return_statement(V<ast_return_statement> v, CodeBlob& code) 
 static void append_implicit_return_statement(SrcLocation loc_end, CodeBlob& code) {
   std::vector<var_idx_t> mutated_vars;
   if (code.fun_ref->has_mutate_params()) {
-    for (const LocalVarData& p_sym : code.fun_ref->parameters) {
+    for (const LocalVarData& p_sym: code.fun_ref->parameters) {
       if (p_sym.is_mutate_parameter()) {
         mutated_vars.insert(mutated_vars.end(), p_sym.ir_idx.begin(), p_sym.ir_idx.end());
       }

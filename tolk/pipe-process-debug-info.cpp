@@ -45,13 +45,13 @@ void pipeline_process_debug_info(std::ostream& debug_out) {
 
       td::JsonBuilder varb;
       auto vararrb = varb.enter_array();
-      for (auto varstr : di.vars) {
-        const auto [var, value] = varstr;
+      for (auto var_and_value : di.vars) {
+        const auto [var, value] = var_and_value;
         auto varb = vararrb.enter_value();
         auto varbo = varb.enter_object();
-        varbo("name", var.name == "" ? "'" + std::to_string(var.ir_idx) : var.name);
+        varbo("name", var.name.empty() ? "'" + std::to_string(var.ir_idx) : var.name);
         varbo("type", var.v_type == nullptr ? "" : var.v_type->as_human_readable());
-        if (value.length() > 0) {
+        if (!value.empty()) {
           varbo("value", value);
         }
       }

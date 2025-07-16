@@ -331,12 +331,14 @@ void AsmOpList::show_var_ext(std::ostream& os, std::pair<var_idx_t, const_idx_t>
 }
 
 std::optional<std::tuple<TmpVar, std::string>> AsmOpList::get_var(std::pair<var_idx_t, const_idx_t> idx_pair) const {
-  if (!var_names_ || (unsigned)idx_pair.first >= var_names_->size()) {
+  const var_idx_t var_idx = idx_pair.first;
+  const const_idx_t const_idx = idx_pair.second;
+  if (!var_names_ || (unsigned)var_idx >= var_names_->size()) {
     return std::nullopt;
   }
-  auto var = var_names_->at(idx_pair.first);
-  if ((unsigned)idx_pair.second < constants_.size() && constants_[idx_pair.second].not_null()) {
-    const auto value = constants_[idx_pair.second];
+  auto var = var_names_->at(var_idx);
+  if ((unsigned)const_idx < constants_.size() && constants_[const_idx].not_null()) {
+    const auto value = constants_[const_idx];
     auto value_str = value->to_dec_string();
     return std::tie(var, value_str);
   }
