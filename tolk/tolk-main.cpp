@@ -51,6 +51,7 @@ void usage(const char* progname) {
          "-x<option-names>\tEnables experimental options, comma-separated\n"
          "-S\tDon't include stack layout comments into Fift output\n"
          "-L\tDon't include original lines from Tolk src into Fift output\n"
+         "-d\tInclude debug information\n"
          "-e\tIncreases verbosity level (extra output into stderr)\n"
          "-v\tOutput version of Tolk and exit\n";
   std::exit(2);
@@ -211,7 +212,7 @@ public:
 
 int main(int argc, char* const argv[]) {
   int i;
-  while ((i = getopt(argc, argv, "o:b:O:x:SLevh")) != -1) {
+  while ((i = getopt(argc, argv, "o:b:O:x:SLedvh")) != -1) {
     switch (i) {
       case 'o':
         G.settings.output_filename = optarg;
@@ -233,6 +234,9 @@ int main(int argc, char* const argv[]) {
         break;
       case 'e':
         G.settings.verbosity++;
+        break;
+      case 'd':
+        G.settings.with_debug_info = true;
         break;
       case 'v':
         std::cout << "Tolk compiler v" << TOLK_VERSION << std::endl;
@@ -280,6 +284,14 @@ int main(int argc, char* const argv[]) {
 
   G.settings.read_callback = fs_read_callback;
 
-  int exit_code = tolk_proceed(argv[optind]);
+  const std::string source_map_filename =
+      G.settings.output_filename.empty() ? "./debug.source_map.json" : G.settings.output_filename + ".source_map.json";
+  std::ofstream debug_out(source_map_filename);
+  if (!debug_out.is_open()) {
+    std::cerr << "failed to create output file " << source_map_filename << " for source map" << std::endl;
+    return 2;
+  }
+
+  int exit_code = tolk_proceed(argv[optind], debug_out);
   return exit_code;
 }

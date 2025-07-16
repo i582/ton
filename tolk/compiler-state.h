@@ -53,6 +53,7 @@ struct CompilerSettings {
   int optimization_level = 2;
   bool stack_layout_comments = true;
   bool tolk_src_as_line_comments = true;
+  bool with_debug_info = false;
 
   std::string output_filename;
   std::string boc_output_filename;

@@ -254,6 +254,10 @@ void Op::show(std::ostream& os, const std::vector<TmpVar>& vars, std::string pfx
       show_var_list(os, left, vars);
       os << " := " << str_const << std::endl;
       break;
+    case _DebugInfo:
+      os << pfx << dis << "DEBUGINFO ";
+      os << debug_info->idx << std::endl;
+      break;
     case _Import:
       os << pfx << dis << "IMPORT ";
       show_var_list(os, left, vars);

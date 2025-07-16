@@ -27,6 +27,7 @@
 #include "generics-helpers.h"
 #include "send-message-api.h"
 #include "gen-entrypoints.h"
+#include <compiler-state.h>
 
 /*
  *   This pipe is the last one operating AST: it transforms AST to IR.
@@ -121,6 +122,42 @@ static int calc_offset_on_stack(StructPtr struct_ref, int field_idx) {
   return stack_offset;
 }
 
+void insert_debug_info_inner(SrcLocation loc, ASTNodeKind kind, CodeBlob& code) {
+  if (!G.settings.with_debug_info) {
+    return;
+  }
+
+  if (kind == ast_block_statement) {
+    return;
+  }
+
+  if (code.prev_ops_kind == Op::_DebugInfo) {
+    // std::cerr << "skip repeated debug info" << std::endl;
+    return;
+  }
+
+  auto& op = code.emplace_back(loc, Op::_DebugInfo);
+  const auto info = std::make_shared<DebugInfo>();
+  info->idx = code.debug_infos.size();
+
+  if (const auto src_file = loc.get_src_file()) {
+    const auto& pos = src_file->convert_offset(loc.get_char_offset());
+
+    info->loc_file = src_file->realpath;
+    info->loc_line = pos.line_no;
+    info->loc_pos = pos.char_no;
+    info->loc_len = pos.line_str.length();
+  }
+
+  info->func_name = code.name;
+  code.debug_infos.push_back(info);
+
+  op.debug_info = info;
+}
+
+void insert_debug_info(AnyV v, CodeBlob& code) {
+  insert_debug_info_inner(v->loc, v->kind, code);
+}
 
 // Main goal of LValContext is to handle non-primitive lvalues. At IR level, a usual local variable
 // exists, but on its change, something non-trivial should happen.
@@ -603,6 +640,8 @@ std::vector<var_idx_t> pre_compile_is_type(CodeBlob& code, TypePtr expr_type, Ty
 static std::vector<var_idx_t> gen_op_call(CodeBlob& code, TypePtr ret_type, SrcLocation loc,
                                           std::vector<var_idx_t>&& args_vars, FunctionPtr fun_ref, const char* debug_desc,
                                           bool arg_order_already_equals_asm = false) {
+  insert_debug_info_inner(loc, ast_function_call, code);
+
   std::vector<var_idx_t> rvect = code.create_tmp_var(ret_type, loc, debug_desc);
   Op& op = code.emplace_back(loc, Op::_Call, rvect, std::move(args_vars), fun_ref);
   if (!fun_ref->is_marked_as_pure()) {
@@ -2018,6 +2057,11 @@ static std::vector<var_idx_t> process_artificial_aux_vertex(V<ast_artificial_aux
 }
 
 std::vector<var_idx_t> pre_compile_expr(AnyExprV v, CodeBlob& code, TypePtr target_type, LValContext* lval_ctx) {
+  if (v->kind != ast_binary_operator && v->kind != ast_unary_operator && v->kind != ast_reference &&
+      v->kind != ast_is_type_operator && v->kind != ast_function_call) {
+    insert_debug_info(v, code);
+  }
+
   switch (v->kind) {
     case ast_reference:
       return process_reference(v->as<ast_reference>(), code, target_type, lval_ctx);
@@ -2286,7 +2330,7 @@ static void process_return_statement(V<ast_return_statement> v, CodeBlob& code) 
 static void append_implicit_return_statement(SrcLocation loc_end, CodeBlob& code) {
   std::vector<var_idx_t> mutated_vars;
   if (code.fun_ref->has_mutate_params()) {
-    for (const LocalVarData& p_sym: code.fun_ref->parameters) {
+    for (const LocalVarData& p_sym : code.fun_ref->parameters) {
       if (p_sym.is_mutate_parameter()) {
         mutated_vars.insert(mutated_vars.end(), p_sym.ir_idx.begin(), p_sym.ir_idx.end());
       }
@@ -2295,8 +2339,9 @@ static void append_implicit_return_statement(SrcLocation loc_end, CodeBlob& code
   code.emplace_back(loc_end, Op::_Return, std::move(mutated_vars));
 }
 
-
 void process_any_statement(AnyV v, CodeBlob& code) {
+  insert_debug_info(v, code);
+
   switch (v->kind) {
     case ast_block_statement:
       return process_block_statement(v->as<ast_block_statement>(), code);

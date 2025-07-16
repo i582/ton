@@ -41,6 +41,7 @@ static td::Result<std::string> compile_internal(char *config_json) {
   TRY_RESULT(opt_level, td::get_json_object_int_field(config, "optimizationLevel", true, 2));
   TRY_RESULT(stack_comments, td::get_json_object_bool_field(config, "withStackComments", true, false));
   TRY_RESULT(src_line_comments, td::get_json_object_bool_field(config, "withSrcLineComments", true, false));
+  TRY_RESULT(with_debug_info, td::get_json_object_bool_field(config, "withDebugInfo", true, false));
   TRY_RESULT(entrypoint_filename, td::get_json_object_string_field(config, "entrypointFileName", false));
   TRY_RESULT(experimental_options, td::get_json_object_string_field(config, "experimentalOptions", true));
 
@@ -48,14 +49,15 @@ static td::Result<std::string> compile_internal(char *config_json) {
   G.settings.optimization_level = std::max(0, opt_level);
   G.settings.stack_layout_comments = stack_comments;
   G.settings.tolk_src_as_line_comments = src_line_comments;
+  G.settings.with_debug_info = with_debug_info;
   if (!experimental_options.empty()) {
     G.settings.parse_experimental_options_cmd_arg(experimental_options.c_str());
   }
 
-  std::ostringstream outs, errs;
+  std::ostringstream outs, errs, debug_out;
   std::cout.rdbuf(outs.rdbuf());
   std::cerr.rdbuf(errs.rdbuf());
-  int exit_code = tolk_proceed(entrypoint_filename);
+  int exit_code = tolk_proceed(entrypoint_filename, debug_out);
   if (exit_code != 0) {
     return td::Status::Error(errs.str());
   }
@@ -68,6 +70,7 @@ static td::Result<std::string> compile_internal(char *config_json) {
   obj("fiftCode", fift_res.fiftCode);
   obj("codeBoc64", fift_res.codeBoc64);
   obj("codeHashHex", fift_res.codeHashHex);
+  obj("debugInfo", td::JsonRaw(debug_out.str()));
   obj("stderr", errs.str().c_str());
   obj.leave();
 

@@ -276,6 +276,19 @@ void Stack::rearrange_top(SrcLocation loc, var_idx_t top, bool last) {
 }
 
 bool Op::generate_code_step(Stack& stack) {
+  // we need to handle it here to correctly handle case `IFJMP { DROP }`
+  if (cl == _DebugInfo) {
+    std::ostringstream ops;
+    ops << debug_info->idx << " DEBUGMARK"; // pseudo instruction
+    stack.o.insert(stack.o.list_.size() - 1, this->loc, ops.str());
+
+    for (auto i : stack.s) {
+      if (const auto var = stack.o.get_var(i)) {
+        debug_info->vars.push_back(*var);
+      }
+    }
+  }
+
   stack.opt_show();
 
   // detect `throw 123` (actually _IntConst 123 + _Call __throw)
@@ -880,6 +893,10 @@ bool Op::generate_code_step(Stack& stack) {
       stack.o << AsmOp::Custom(loc, "COMPOSALT");
       stack.o << AsmOp::Custom(loc, "SWAP");
       stack.o << AsmOp::Custom(loc, "TRY");
+      return true;
+    }
+    case _DebugInfo: {
+      // already handled above
       return true;
     }
     default:

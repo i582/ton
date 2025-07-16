@@ -264,6 +264,16 @@ class ListIterator {
 
 struct Stack;
 
+struct DebugInfo {
+  size_t idx{};
+  std::string loc_file;
+  long loc_line{};
+  long loc_pos{};
+  long loc_len{};
+  std::vector<std::tuple<TmpVar, /* default value: */ std::string>> vars;
+  std::string func_name;
+};
+
 struct Op {
   enum OpKind {
     _Nop,
@@ -284,6 +294,7 @@ struct Op {
     _Again,
     _TryCatch,
     _SliceConst,
+    _DebugInfo,
   };
   OpKind cl;
   enum { _Disabled = 1, _NoReturn = 2, _Impure = 4, _ArgOrderAlreadyEqualsAsm = 8 };
@@ -298,6 +309,7 @@ struct Op {
   std::unique_ptr<Op> block0, block1;
   td::RefInt256 int_const;
   std::string str_const;
+  std::shared_ptr<DebugInfo> debug_info;
   Op(SrcLocation loc, OpKind cl) : cl(cl), flags(0), loc(loc) {
   }
   Op(SrcLocation loc, OpKind cl, const std::vector<var_idx_t>& left)
@@ -587,6 +599,7 @@ struct AsmOpList {
   std::vector<td::RefInt256> constants_;
   bool retalt_{false};
   bool retalt_inserted_{false};
+  std::optional<std::tuple<TmpVar, std::string>> get_var(std::pair<var_idx_t, const_idx_t> idx_pair) const;
   void out(std::ostream& os, int mode = 0) const;
   AsmOpList(int indent = 0, const std::vector<TmpVar>* var_names = nullptr) : indent_(indent), var_names_(var_names) {
   }
@@ -1069,7 +1082,9 @@ struct CodeBlob {
   std::vector<var_idx_t>* inline_rvect_out = nullptr;
   bool inlining_before_immediate_return = false;
   std::unique_ptr<Op> ops;
+  Op::OpKind prev_ops_kind;
   std::unique_ptr<Op>* cur_ops;
+  std::vector<std::shared_ptr<DebugInfo>> debug_infos;
 #ifdef TOLK_DEBUG
   std::vector<Op*> _vector_of_ops;  // to see it in debugger instead of nested pointers
 #endif
@@ -1084,6 +1099,7 @@ struct CodeBlob {
     if (forced_loc.is_defined()) {
       res.loc = forced_loc;
     }
+    prev_ops_kind = res.cl;
     cur_ops = &(res.next);
 #ifdef TOLK_DEBUG
     _vector_of_ops.push_back(&res);
@@ -1144,7 +1160,7 @@ void patch_builtins_after_stdlib_loaded();
  *
  */
 
-int tolk_proceed(const std::string &entrypoint_filename);
+int tolk_proceed(const std::string &entrypoint_filename, std::ostream& debug_out);
 
 }  // namespace tolk
 
