@@ -256,7 +256,7 @@ void Op::show(std::ostream& os, const std::vector<TmpVar>& vars, std::string pfx
       break;
     case _DebugInfo:
       os << pfx << dis << "DEBUGINFO ";
-      os << debug_info->idx << std::endl;
+      os << debug_idx << std::endl;
       break;
     case _Import:
       os << pfx << dis << "IMPORT ";

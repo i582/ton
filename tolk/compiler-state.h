@@ -22,6 +22,7 @@
 #include <functional>
 #include <set>
 #include <string>
+#include <tolk.h>
 
 namespace tolk {
 
@@ -104,6 +105,8 @@ struct CompilerState {
   std::vector<GlobalConstPtr> all_constants;
   std::vector<StructPtr> all_structs;
   AllRegisteredSrcFiles all_src_files;
+
+  std::vector<DebugInfo> debug_infos;
 
   bool is_verbosity(int gt_eq) const { return settings.verbosity >= gt_eq; }
 };

@@ -279,12 +279,15 @@ bool Op::generate_code_step(Stack& stack) {
   // we need to handle it here to correctly handle case `IFJMP { DROP }`
   if (cl == _DebugInfo) {
     std::ostringstream ops;
-    ops << debug_info->idx << " DEBUGMARK"; // pseudo instruction
+    ops << debug_idx << " DEBUGMARK"; // pseudo instruction
     stack.o.insert(stack.o.list_.size() - 1, this->loc, ops.str());
 
-    for (auto i : stack.s) {
-      if (const auto var = stack.o.get_var(i)) {
-        debug_info->vars.push_back(*var);
+    if (debug_idx < G.debug_infos.size()) {
+      auto& debug_info = G.debug_infos.at(debug_idx);
+      for (auto i : stack.s) {
+        if (const auto var = stack.o.get_var(i)) {
+          debug_info.vars.push_back(*var);
+        }
       }
     }
   }

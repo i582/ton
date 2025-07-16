@@ -137,22 +137,22 @@ void insert_debug_info_inner(SrcLocation loc, ASTNodeKind kind, CodeBlob& code) 
   }
 
   auto& op = code.emplace_back(loc, Op::_DebugInfo);
-  const auto info = std::make_shared<DebugInfo>();
-  info->idx = code.debug_infos.size();
+  auto info = DebugInfo{};
 
-  if (const auto src_file = loc.get_src_file()) {
+  op.debug_idx = G.debug_infos.size();
+  info.idx = op.debug_idx;
+
+  if (const auto src_file = loc.get_src_file(); src_file != nullptr) {
     const auto& pos = src_file->convert_offset(loc.get_char_offset());
 
-    info->loc_file = src_file->realpath;
-    info->loc_line = pos.line_no;
-    info->loc_pos = pos.char_no;
-    info->loc_len = pos.line_str.length();
+    info.loc_file = src_file->realpath;
+    info.loc_line = pos.line_no;
+    info.loc_pos = pos.char_no;
+    info.loc_len = pos.line_str.length();
   }
 
-  info->func_name = code.name;
-  code.debug_infos.push_back(info);
-
-  op.debug_info = info;
+  info.func_name = code.name;
+  G.debug_infos.push_back(info);
 }
 
 void insert_debug_info(AnyV v, CodeBlob& code) {

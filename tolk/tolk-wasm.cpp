@@ -70,8 +70,12 @@ static td::Result<std::string> compile_internal(char *config_json) {
   obj("fiftCode", fift_res.fiftCode);
   obj("codeBoc64", fift_res.codeBoc64);
   obj("codeHashHex", fift_res.codeHashHex);
-  obj("debugInfo", td::JsonRaw(debug_out.str()));
-  obj("debugMarksBoc", std::move(fift_res.debugMarksBoc64));
+
+  if (const auto debug_info = debug_out.str(); !debug_info.empty()) {
+    obj("debugInfo", td::JsonRaw(debug_info));
+    obj("debugMarksBoc", std::move(fift_res.debugMarksBoc64));
+  }
+
   obj("stderr", errs.str().c_str());
   obj.leave();
 
