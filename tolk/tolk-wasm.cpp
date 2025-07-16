@@ -62,7 +62,7 @@ static td::Result<std::string> compile_internal(char *config_json) {
     return td::Status::Error(errs.str());
   }
 
-  TRY_RESULT(fift_res, fift::compile_asm_program(outs.str(), "/fiftlib/"));
+  TRY_RESULT(fift_res, fift::compile_asm_program(outs.str(), "/fiftlib/", with_debug_info));
 
   td::JsonBuilder result_json;
   auto obj = result_json.enter_object();
@@ -71,6 +71,7 @@ static td::Result<std::string> compile_internal(char *config_json) {
   obj("codeBoc64", fift_res.codeBoc64);
   obj("codeHashHex", fift_res.codeHashHex);
   obj("debugInfo", td::JsonRaw(debug_out.str()));
+  obj("debugMarksBoc", std::move(fift_res.debugMarksBoc64));
   obj("stderr", errs.str().c_str());
   obj.leave();
 
