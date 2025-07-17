@@ -280,7 +280,11 @@ bool Op::generate_code_step(Stack& stack) {
   if (cl == _DebugInfo) {
     std::ostringstream ops;
     ops << debug_idx << " DEBUGMARK"; // pseudo instruction
-    stack.o.insert(stack.o.list_.size() - 1, loc, ops.str());
+
+    const auto list_size = stack.o.list_.size();
+    if (list_size > 0) {
+      stack.o.insert(stack.o.list_.size() - 1, loc, ops.str());
+    }
 
     if (debug_idx < G.debug_infos.size()) {
       auto& debug_info = G.debug_infos.at(debug_idx);

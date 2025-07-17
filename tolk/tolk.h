@@ -309,7 +309,7 @@ struct Op {
   std::unique_ptr<Op> block0, block1;
   td::RefInt256 int_const;
   std::string str_const;
-  size_t debug_idx;
+  size_t debug_idx{0};
   Op(SrcLocation loc, OpKind cl) : cl(cl), flags(0), loc(loc) {
   }
   Op(SrcLocation loc, OpKind cl, const std::vector<var_idx_t>& left)

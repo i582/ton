@@ -62,7 +62,7 @@ td::Result<std::string> compile_internal(char *config_json) {
     return td::Status::Error("FunC compilation error: " + errs.str());
   }
 
-  TRY_RESULT(fift_res, fift::compile_asm_program(outs.str(), "/fiftlib/", false));
+  TRY_RESULT(fift_res, fift::compile_asm_program(outs.str(), "/fiftlib/"));
 
   td::JsonBuilder result_json;
   auto obj = result_json.enter_object();

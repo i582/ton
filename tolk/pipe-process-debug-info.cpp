@@ -12,7 +12,6 @@ void pipeline_process_debug_info(std::ostream& debug_out) {
     return;
   }
 
-  const auto debug_infos = G.debug_infos;
 
   td::JsonBuilder _jb;
   auto objb = _jb.enter_object();
@@ -35,7 +34,7 @@ void pipeline_process_debug_info(std::ostream& debug_out) {
   {
     td::JsonBuilder jsonb;
     auto arrb = jsonb.enter_array();
-    for (auto di : debug_infos) {
+    for (auto di : G.debug_infos) {
       auto vb = arrb.enter_value();
       auto ob = vb.enter_object();
       ob("file", di.loc_file);
@@ -47,8 +46,8 @@ void pipeline_process_debug_info(std::ostream& debug_out) {
       auto vararrb = varb.enter_array();
       for (auto var_and_value : di.vars) {
         const auto [var, value] = var_and_value;
-        auto varb = vararrb.enter_value();
-        auto varbo = varb.enter_object();
+        auto varb2 = vararrb.enter_value();
+        auto varbo = varb2.enter_object();
         varbo("name", var.name.empty() ? "'" + std::to_string(var.ir_idx) : var.name);
         varbo("type", var.v_type == nullptr ? "" : var.v_type->as_human_readable());
         if (!value.empty()) {

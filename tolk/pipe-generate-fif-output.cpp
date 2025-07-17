@@ -190,12 +190,7 @@ void pipeline_generate_fif_output_to_std_cout() {
     generate_output_func(fun_ref);
   }
 
-  std::cout << "}END>c";
-
-  if (G.settings.with_debug_info) {
-    std::cout << "d";
-  }
-  std::cout << std::endl;
+  std::cout << "}END>c\n";
 
   if (!G.settings.boc_output_filename.empty()) {
     std::cout << "boc>B \"" << G.settings.boc_output_filename << "\" B>file\n";
