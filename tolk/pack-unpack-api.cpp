@@ -241,6 +241,8 @@ std::vector<var_idx_t> generate_pack_struct_to_cell(CodeBlob& code, SrcLocation 
   FunctionPtr f_beginCell = lookup_function("beginCell");
   FunctionPtr f_endCell = lookup_function("builder.endCell");
   std::vector rvect_builder = code.create_var(TypeDataBuilder::create(), loc, "b");
+
+  insert_debug_info_inner(loc, ast_function_call, code);
   code.emplace_back(loc, Op::_Call, rvect_builder, std::vector<var_idx_t>{}, f_beginCell);
 
   tolk_assert(ir_options.size() == 1);      // struct PackOptions
@@ -280,6 +282,8 @@ std::vector<var_idx_t> generate_unpack_struct_from_slice(CodeBlob& code, SrcLoca
 }
 
 std::vector<var_idx_t> generate_unpack_struct_from_cell(CodeBlob& code, SrcLocation loc, TypePtr any_type, std::vector<var_idx_t>&& ir_cell, const std::vector<var_idx_t>& ir_options) {
+  insert_debug_info_inner(loc, ast_function_call, code);
+
   FunctionPtr f_beginParse = lookup_function("cell.beginParse");
   std::vector ir_slice = code.create_var(TypeDataSlice::create(), loc, "s");
   code.emplace_back(loc, Op::_Call, ir_slice, std::move(ir_cell), f_beginParse);
@@ -364,6 +368,8 @@ void generate_lazy_struct_from_slice(CodeBlob& code, SrcLocation loc, const Lazy
 std::vector<var_idx_t> generate_lazy_struct_to_cell(CodeBlob& code, SrcLocation loc, const LazyStructLoadedState* loaded_state, std::vector<var_idx_t>&& ir_obj, const std::vector<var_idx_t>& ir_options) {
   StructPtr original_struct = loaded_state->original_struct;
   StructPtr hidden_struct = loaded_state->hidden_struct;
+
+  insert_debug_info_inner(loc, ast_function_call, code);
 
   std::vector rvect_builder = code.create_var(TypeDataBuilder::create(), loc, "b");
   code.emplace_back(loc, Op::_Call, rvect_builder, std::vector<var_idx_t>{}, lookup_function("beginCell"));

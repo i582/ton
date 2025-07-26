@@ -283,7 +283,7 @@ bool Op::generate_code_step(Stack& stack) {
 
     const auto list_size = stack.o.list_.size();
     if (list_size > 0) {
-      stack.o.insert(stack.o.list_.size() - 1, loc, ops.str());
+      stack.o.insert(stack.o.list_.size(), loc, ops.str());
     }
 
     if (debug_idx < G.debug_infos.size()) {

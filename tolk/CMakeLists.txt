@@ -41,6 +41,7 @@ set(TOLK_SOURCE
         stack-transform.cpp
         optimize.cpp
         codegen.cpp
+        debug-info.cpp
         tolk.cpp
 )
 

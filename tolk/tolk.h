@@ -21,6 +21,8 @@
 #include "symtable.h"
 #include "crypto/common/refint.h"
 #include "td/utils/Status.h"
+
+#include <ast.h>
 #include <functional>
 #include <vector>
 #include <string>
@@ -266,6 +268,7 @@ struct Stack;
 
 struct DebugInfo {
   size_t idx{};
+  bool is_entry{};
   std::string loc_file;
   long loc_line{};
   long loc_pos{};
@@ -1072,6 +1075,9 @@ struct LazyVarRefAtCodegen {
     : var_ref(var_ref), var_state(var_state) {}
 };
 
+void insert_debug_info_inner(SrcLocation loc, ASTNodeKind kind, CodeBlob& code);
+void insert_debug_info(AnyV v, CodeBlob& code);
+
 struct CodeBlob {
   int var_cnt, in_var_cnt;
   FunctionPtr fun_ref;
@@ -1150,8 +1156,6 @@ AsmOp push_const(SrcLocation loc, td::RefInt256 x);
 
 void define_builtins();
 void patch_builtins_after_stdlib_loaded();
-
-
 
 /*
  *

@@ -122,43 +122,6 @@ static int calc_offset_on_stack(StructPtr struct_ref, int field_idx) {
   return stack_offset;
 }
 
-void insert_debug_info_inner(SrcLocation loc, ASTNodeKind kind, CodeBlob& code) {
-  if (!G.settings.with_debug_info) {
-    return;
-  }
-
-  if (kind == ast_block_statement) {
-    return;
-  }
-
-  if (code.prev_ops_kind == Op::_DebugInfo) {
-    // std::cerr << "skip repeated debug info" << std::endl;
-    return;
-  }
-
-  auto& op = code.emplace_back(loc, Op::_DebugInfo);
-  op.debug_idx = G.debug_infos.size();
-
-  auto info = DebugInfo{};
-  info.idx = op.debug_idx;
-
-  if (const SrcFile* src_file = loc.get_src_file(); src_file != nullptr) {
-    const auto& pos = src_file->convert_offset(loc.get_char_offset());
-
-    info.loc_file = src_file->realpath;
-    info.loc_line = pos.line_no;
-    info.loc_pos = pos.char_no;
-    info.loc_len = pos.line_str.length();
-  }
-
-  info.func_name = code.name;
-  G.debug_infos.push_back(info);
-}
-
-void insert_debug_info(AnyV v, CodeBlob& code) {
-  insert_debug_info_inner(v->loc, v->kind, code);
-}
-
 // Main goal of LValContext is to handle non-primitive lvalues. At IR level, a usual local variable
 // exists, but on its change, something non-trivial should happen.
 // Example: `globalVar = 9` actually does `Const $5 = 9` + `Let $6 = $5` + `SetGlob "globVar" = $6`
@@ -754,6 +717,8 @@ static std::vector<var_idx_t> gen_compile_time_code_instead_of_fun_call(CodeBlob
 }
 
 std::vector<var_idx_t> gen_inline_fun_call_in_place(CodeBlob& code, TypePtr ret_type, SrcLocation loc, FunctionPtr f_inlined, AnyExprV self_obj, bool is_before_immediate_return, const std::vector<std::vector<var_idx_t>>& vars_per_arg) {
+  insert_debug_info_inner(loc, ast_function_call, code);
+
   tolk_assert(vars_per_arg.size() == f_inlined->parameters.size());
   for (int i = 0; i < f_inlined->get_num_params(); ++i) {
     const LocalVarData& param_i = f_inlined->get_param(i);
@@ -1277,6 +1242,8 @@ static std::vector<var_idx_t> process_reference(V<ast_reference> v, CodeBlob& co
 }
 
 static std::vector<var_idx_t> process_assignment(V<ast_assign> v, CodeBlob& code, TypePtr target_type) {
+  insert_debug_info_inner(v->loc, v->kind, code);
+
   AnyExprV lhs = v->get_lhs();
   AnyExprV rhs = v->get_rhs();
 
@@ -1295,6 +1262,8 @@ static std::vector<var_idx_t> process_assignment(V<ast_assign> v, CodeBlob& code
 }
 
 static std::vector<var_idx_t> process_set_assign(V<ast_set_assign> v, CodeBlob& code, TypePtr target_type) {
+  insert_debug_info_inner(v->loc, v->kind, code);
+
   // for "a += b", emulate "a = a + b"
   // seems not beautiful, but it works; probably, this transformation should be done at AST level in advance
   std::string_view calc_operator = v->operator_name;  // "+" for operator +=
@@ -1328,11 +1297,17 @@ static std::vector<var_idx_t> process_binary_operator(V<ast_binary_operator> v, 
     std::vector<var_idx_t> cond = pre_compile_expr(v->get_lhs(), code, nullptr);
     tolk_assert(cond.size() == 1);
     std::vector<var_idx_t> rvect = code.create_tmp_var(v->inferred_type, v->loc, "(ternary)");
+
+    insert_debug_info_inner(v->loc, ast_binary_operator, code);
+
     Op& if_op = code.emplace_back(v->loc, Op::_If, cond);
     code.push_set_cur(if_op.block0);
+
+    insert_debug_info_inner(v->get_lhs()->loc, ast_binary_operator, code);
     code.emplace_back(v->loc, Op::_Let, rvect, pre_compile_expr(t == tok_logical_and ? v_b_ne_0 : v_1, code, nullptr));
     code.close_pop_cur(v->loc);
     code.push_set_cur(if_op.block1);
+    insert_debug_info_inner(v->get_rhs()->loc, ast_binary_operator, code);
     code.emplace_back(v->loc, Op::_Let, rvect, pre_compile_expr(t == tok_logical_and ? v_0 : v_b_ne_0, code, nullptr));
     code.close_pop_cur(v->loc);
     return transition_to_target_type(std::move(rvect), code, target_type, v);
@@ -1472,6 +1447,8 @@ static std::vector<var_idx_t> process_lazy_operator(V<ast_lazy_operator> v, Code
 }
 
 static std::vector<var_idx_t> process_match_expression(V<ast_match_expression> v, CodeBlob& code, TypePtr target_type) {
+  insert_debug_info_inner(v->loc, ast_function_call, code);
+
   TypePtr lhs_type = v->get_subject()->inferred_type->unwrap_alias();
 
   int n_arms = v->get_arms_count();
@@ -1511,11 +1488,13 @@ static std::vector<var_idx_t> process_match_expression(V<ast_match_expression> v
     if (is_match_by_type) {
       TypePtr cmp_type = v_ith_arm->pattern_type_node->resolved_type->unwrap_alias();
       tolk_assert(!cmp_type->try_as<TypeDataUnion>());  // `match` over `int|slice` is a type checker error
+      insert_debug_info_inner(v_ith_arm->loc, ast_function_call, code);
       eq_ith_ir_idx = pre_compile_is_type(code, lhs_type, cmp_type, subj_ir_idx, v_ith_arm->loc, "(arm-cond-eq)");
     } else {
       std::vector<var_idx_t> ith_ir_idx = pre_compile_expr(v_ith_arm->get_pattern_expr(), code);
       tolk_assert(subj_ir_idx.size() == 1 && ith_ir_idx.size() == 1);
       eq_ith_ir_idx = code.create_tmp_var(TypeDataBool::create(), v_ith_arm->loc, "(arm-cond-eq)");
+      insert_debug_info_inner(v_ith_arm->loc, ast_function_call, code);
       code.emplace_back(v_ith_arm->loc, Op::_Call, eq_ith_ir_idx, std::vector{subj_ir_idx[0], ith_ir_idx[0]}, eq_sym);
     }
     Op& if_op = code.emplace_back(v_ith_arm->loc, Op::_If, std::move(eq_ith_ir_idx));
@@ -1537,6 +1516,7 @@ static std::vector<var_idx_t> process_match_expression(V<ast_match_expression> v
     // we're inside the last ELSE
     auto v_last_arm = v->get_arm(n_arms - 1);
     if (v->is_statement()) {
+      insert_debug_info_inner(v_last_arm->loc, ast_function_call, code);
       pre_compile_expr(v_last_arm->get_body(), code);
       if (v == stmt_before_immediate_return) {
         code.emplace_back(v_last_arm->loc, Op::_Return);
@@ -2018,6 +1998,8 @@ static std::vector<var_idx_t> process_artificial_aux_vertex(V<ast_artificial_aux
     V<ast_match_expression> v_match = v->get_wrapped_expr()->as<ast_match_expression>();
     pre_compile_expr(v_match->get_subject(), code, nullptr);
 
+    // insert_debug_info_inner(v_match->loc, ast_match_expression, code);
+
     const LazyVariableLoadedState* lazy_variable = code.get_lazy_variable(data->var_ref);
     tolk_assert(lazy_variable);
     TypePtr t_union = data->field_ref ? data->field_ref->declared_type : data->var_ref->declared_type;
@@ -2027,12 +2009,14 @@ static std::vector<var_idx_t> process_artificial_aux_vertex(V<ast_artificial_aux
     for (int i = 0; i < v_match->get_arms_count(); ++i) {
       auto v_arm = v_match->get_arm(i);
       TypePtr arm_variant = nullptr;
+      AnyV arm_variant_node = nullptr;
       if (v_arm->pattern_kind == MatchArmKind::exact_type) {
         arm_variant = v_arm->pattern_type_node->resolved_type->unwrap_alias();
+        arm_variant_node = v_arm->pattern_type_node;
       } else {
         tolk_assert(v_arm->pattern_kind == MatchArmKind::else_branch);   // `else` allowed in a lazy match
       }
-      match_blocks.emplace_back(LazyMatchOptions::MatchBlock{arm_variant, v_arm->get_body(), v_arm->get_body()->inferred_type});
+      match_blocks.emplace_back(LazyMatchOptions::MatchBlock{arm_variant, arm_variant_node, v_arm->get_body(), v_arm->get_body()->inferred_type});
     }
 
     LazyMatchOptions options = {
@@ -2059,7 +2043,7 @@ static std::vector<var_idx_t> process_artificial_aux_vertex(V<ast_artificial_aux
 std::vector<var_idx_t> pre_compile_expr(AnyExprV v, CodeBlob& code, TypePtr target_type, LValContext* lval_ctx) {
   if (v->kind != ast_binary_operator && v->kind != ast_unary_operator && v->kind != ast_reference &&
       v->kind != ast_is_type_operator && v->kind != ast_function_call) {
-    insert_debug_info(v, code);
+    // insert_debug_info(v, code);
   }
 
   switch (v->kind) {
@@ -2315,6 +2299,8 @@ static void process_return_statement(V<ast_return_statement> v, CodeBlob& code) 
     return_vars.insert(return_vars.begin(), mutated_vars.begin(), mutated_vars.end());
   }
 
+  insert_debug_info_inner(v->loc, ast_return_statement, code);
+
   // if fun_ref is called and inlined into a parent, assign a result instead of generating a return statement
   if (code.inline_rvect_out) {
     code.emplace_back(v->loc, Op::_Let, *code.inline_rvect_out, std::move(return_vars));
@@ -2340,7 +2326,7 @@ static void append_implicit_return_statement(SrcLocation loc_end, CodeBlob& code
 }
 
 void process_any_statement(AnyV v, CodeBlob& code) {
-  insert_debug_info(v, code);
+  // insert_debug_info(v, code);
 
   switch (v->kind) {
     case ast_block_statement:
@@ -2369,7 +2355,8 @@ void process_any_statement(AnyV v, CodeBlob& code) {
 }
 
 static void convert_function_body_to_CodeBlob(FunctionPtr fun_ref, FunctionBodyCode* code_body) {
-  auto v_body = fun_ref->ast_root->as<ast_function_declaration>()->get_body()->as<ast_block_statement>();
+  auto v_fun_decl = fun_ref->ast_root->as<ast_function_declaration>();
+  auto v_body = v_fun_decl->get_body()->as<ast_block_statement>();
   CodeBlob* blob = new CodeBlob(fun_ref);
 
   std::vector<var_idx_t> rvect_import;
@@ -2388,6 +2375,8 @@ static void convert_function_body_to_CodeBlob(FunctionPtr fun_ref, FunctionBodyC
   blob->emplace_back(fun_ref->loc, Op::_Import, rvect_import);
   blob->in_var_cnt = blob->var_cnt;
   tolk_assert(blob->var_cnt == total_arg_width);
+
+  // insert_debug_info_inner(v_fun_decl->get_identifier()->loc, ast_function_declaration, *blob);
 
   if (fun_ref->name == "onInternalMessage") {
     handle_onInternalMessage_codegen_start(fun_ref, rvect_import, *blob, fun_ref->loc);
@@ -2491,6 +2480,7 @@ public:
     tolk_assert(fun_ref->is_type_inferring_done());
     if (fun_ref->is_code_function() && !fun_ref->is_inlined_in_place()) {
       convert_function_body_to_CodeBlob(fun_ref, std::get<FunctionBodyCode*>(fun_ref->body));
+      std::get<FunctionBodyCode*>(fun_ref->body)->code->print(std::cerr);
     } else if (fun_ref->is_asm_function()) {
       convert_asm_body_to_AsmOp(fun_ref, std::get<FunctionBodyAsm*>(fun_ref->body));
     }

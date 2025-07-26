@@ -37,6 +37,8 @@ void pipeline_process_debug_info(std::ostream& debug_out) {
     for (auto di : G.debug_infos) {
       auto vb = arrb.enter_value();
       auto ob = vb.enter_object();
+      ob("idx", std::to_string(di.idx));
+      ob("is_entry", td::JsonBool(di.is_entry));
       ob("file", di.loc_file);
       ob("line", (td::int64)di.loc_line);
       ob("pos", (td::int64)di.loc_pos);
