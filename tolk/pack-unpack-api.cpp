@@ -256,6 +256,7 @@ std::vector<var_idx_t> generate_pack_struct_to_cell(CodeBlob& code, SrcLocation 
 }
 
 std::vector<var_idx_t> generate_pack_struct_to_builder(CodeBlob& code, SrcLocation loc, TypePtr any_type, std::vector<var_idx_t>&& ir_builder, std::vector<var_idx_t>&& ir_obj, const std::vector<var_idx_t>& ir_options) {
+  insert_debug_info_inner(loc, ast_function_call, code);
   PackContext ctx(code, loc, ir_builder, ir_options);   // mutate this builder
   ctx.generate_pack_any(any_type, std::move(ir_obj));
 
@@ -263,6 +264,7 @@ std::vector<var_idx_t> generate_pack_struct_to_builder(CodeBlob& code, SrcLocati
 }
 
 std::vector<var_idx_t> generate_unpack_struct_from_slice(CodeBlob& code, SrcLocation loc, TypePtr any_type, std::vector<var_idx_t>&& ir_slice, bool mutate_slice, const std::vector<var_idx_t>& ir_options) {
+  insert_debug_info_inner(loc, ast_function_call, code);
   if (!mutate_slice) {
     std::vector slice_copy = code.create_var(TypeDataSlice::create(), loc, "s");
     code.emplace_back(loc, Op::_Let, slice_copy, std::move(ir_slice));
@@ -301,6 +303,7 @@ std::vector<var_idx_t> generate_unpack_struct_from_cell(CodeBlob& code, SrcLocat
 }
 
 std::vector<var_idx_t> generate_skip_struct_in_slice(CodeBlob& code, SrcLocation loc, TypePtr any_type, std::vector<var_idx_t>&& ir_slice, const std::vector<var_idx_t>& ir_options) {
+  insert_debug_info_inner(loc, ast_function_call, code);
   UnpackContext ctx(code, loc, ir_slice, ir_options);    // mutate this slice
   ctx.generate_skip_any(any_type);
 
@@ -435,6 +438,7 @@ PackSize estimate_serialization_size(TypePtr any_type) {
 }
 
 std::vector<var_idx_t> generate_estimate_size_call(CodeBlob& code, SrcLocation loc, TypePtr any_type) {
+  insert_debug_info_inner(loc, ast_function_call, code);
   EstimateContext ctx;
   PackSize pack_size = ctx.estimate_any(any_type);
 

@@ -281,6 +281,20 @@ bool Op::generate_code_step(Stack& stack) {
     std::ostringstream ops;
     ops << debug_idx << " DEBUGMARK"; // pseudo instruction
 
+    // Attach a source snippet as a Fift comment to make mapping explicit in compiled output
+    if (const SrcFile* src_file = loc.get_src_file()) {
+      const auto& pos = src_file->convert_offset(loc.get_char_offset());
+      std::string line = std::string(pos.line_str);
+      // Trim trailing CR/LF and excessive spaces to keep output compact
+      while (!line.empty() && (line.back() == '\\r' || line.back() == '\\n')) line.pop_back();
+      // Avoid extremely long comments
+      if (line.size() > 200) {
+        line.resize(200);
+        line += "...";
+      }
+      ops << " // " << line;
+    }
+
     const auto list_size = stack.o.list_.size();
     if (list_size > 0) {
       stack.o.insert(stack.o.list_.size(), loc, ops.str());

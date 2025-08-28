@@ -87,6 +87,7 @@ struct IR_AutoDeployAddress {
 };
 
 std::vector<var_idx_t> generate_createMessage(CodeBlob& code, SrcLocation loc, TypePtr bodyT, std::vector<var_idx_t>&& rvect) {
+  insert_debug_info_inner(loc, ast_function_call, code);
   StructPtr s_Options = lookup_global_symbol("CreateMessageOptions")->try_as<StructPtr>();
   StructPtr s_AutoDeployAddress = lookup_global_symbol("AutoDeployAddress")->try_as<StructPtr>();
 
@@ -357,6 +358,7 @@ std::vector<var_idx_t> generate_createMessage(CodeBlob& code, SrcLocation loc, T
 }
 
 std::vector<var_idx_t> generate_createExternalLogMessage(CodeBlob& code, SrcLocation loc, TypePtr bodyT, std::vector<var_idx_t>&& rvect) {
+  insert_debug_info_inner(loc, ast_function_call, code);
   StructPtr s_Options = lookup_global_symbol("CreateExternalLogMessageOptions")->try_as<StructPtr>();
   StructPtr s_ExtOutLogBucket = lookup_global_symbol("ExtOutLogBucket")->try_as<StructPtr>();
 
@@ -491,6 +493,7 @@ std::vector<var_idx_t> generate_createExternalLogMessage(CodeBlob& code, SrcLoca
 }
 
 std::vector<var_idx_t> generate_address_buildInAnotherShard(CodeBlob& code, SrcLocation loc, std::vector<var_idx_t>&& ir_self_address, std::vector<var_idx_t>&& ir_shard_options) {
+  insert_debug_info_inner(loc, ast_function_call, code);
   tolk_assert(ir_shard_options.size() == 2);
 
   // example for fixedPrefixLength (shard depth) = 8:
@@ -522,6 +525,7 @@ std::vector<var_idx_t> generate_address_buildInAnotherShard(CodeBlob& code, SrcL
 }
 
 std::vector<var_idx_t> generate_AutoDeployAddress_buildAddress(CodeBlob& code, SrcLocation loc, std::vector<var_idx_t>&& ir_auto_deploy) {
+  insert_debug_info_inner(loc, ast_function_call, code);
   IR_AutoDeployAddress ir_self(code, loc, ir_auto_deploy);
 
   std::vector ir_builder = code.create_tmp_var(TypeDataSlice::create(), loc, "(addr-b)");
@@ -600,6 +604,7 @@ std::vector<var_idx_t> generate_AutoDeployAddress_buildAddress(CodeBlob& code, S
 }
 
 std::vector<var_idx_t> generate_AutoDeployAddress_addressMatches(CodeBlob& code, SrcLocation loc, std::vector<var_idx_t>&& ir_auto_deploy, std::vector<var_idx_t>&& ir_address) {
+  insert_debug_info_inner(loc, ast_function_call, code);
   IR_AutoDeployAddress ir_self(code, loc, ir_auto_deploy);
 
   // at first, calculate stateInitHash = (hash of StateInit cell would be, but without constructing a cell)
