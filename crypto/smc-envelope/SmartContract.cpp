@@ -359,7 +359,6 @@ SmartContract::Answer SmartContract::run_get_method(Args args) const {
 
 int SmartContract::run_get_method_debug(Args args, std::unique_ptr<vm::VmState>& vm, std::unique_ptr<Logger>& logger) {
   prepare_get_method_args(args);
-  // For debug mode we need only to setup VM for stepping
   return setup_vm(args.stack.unwrap(), args.c7.unwrap(), args.limits.unwrap(), args.ignore_chksig,
                        args.libraries ? args.libraries.unwrap().get_root_cell() : td::Ref<vm::Cell>{},
                        args.vm_log_verbosity_level, args.debug_enabled, args.config ? args.config.value() : nullptr, vm, logger);
