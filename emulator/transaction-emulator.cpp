@@ -106,7 +106,7 @@ td::Result<bool> TransactionEmulator::prepare_emulate_transaction_debug(
 
     account_ = std::move(account);
 
-    auto prepare_res = prepare_emulation(account, utime, lt, storage_phase_cfg_, compute_phase_cfg_, action_phase_cfg_, serialize_config_);
+    auto prepare_res = prepare_emulation(account_, utime, lt, storage_phase_cfg_, compute_phase_cfg_, action_phase_cfg_, serialize_config_);
     if (prepare_res.is_error()) {
       return prepare_res.move_as_error_prefix("cannot prepare emulation");
     }
