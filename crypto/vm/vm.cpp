@@ -468,15 +468,11 @@ int VmState::step() {
 
 td::optional<int> VmState::debug_step() {
   try {
-    if (!sbs_running) {
-      if (need_restore_parent) {
-        restore_parent_vm(~exit_code);
-      }
-      sbs_running = true;
+    if (need_restore_parent) {
+      restore_parent_vm(~exit_code);
     }
     int res_inner = run_step();
     exit_code = res_inner;
-    sbs_running = false;
 
     if (!res_inner) {
       return {};
@@ -490,14 +486,14 @@ td::optional<int> VmState::debug_step() {
     exit_code = vmoog.get_errno();  // no ~ for unhandled exceptions (to make their faking impossible)
   }
 
-  if (!parent) {
-    return exit_code;
+  if (parent) {
+    // if there is a parent VM for current VM, return nullopt to continue execution of the code after RUNVM
+    // at the next step, we will restore parent VM and continue execution.
+    need_restore_parent = true;
+    return {};
   }
 
-  // if there is a parent VM for current VM, return nullopt to continue execution of the code after RUNVM
-  // at the next step, we will restore parent VM and continue execution.
-  need_restore_parent = true;
-  return {};
+  return exit_code;
 }
 
 /**
@@ -552,7 +548,7 @@ int VmState::run_step() {
 }
 
 /**
- * Executes instructions ony by one until end
+ * Executes instructions one by one until end
  */
 int VmState::run_inner() {
   int res;

@@ -118,12 +118,6 @@ class VmState final : public VmStateInterface {
    */
   int exit_code{0};
 
-  /**
-   * True while executing single instruction
-   * TODO: Do we really need it?
-   */
-  bool sbs_running{false};
-
  public:
   enum {
     cell_load_gas_price = 100,
