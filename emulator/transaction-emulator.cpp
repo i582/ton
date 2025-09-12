@@ -241,29 +241,25 @@ td::Result<> TransactionEmulator::create_transaction_prepare(
   if (msg_root.not_null() && !trans_->unpack_input_msg(ihr_delivered, action_phase_cfg)) {
     if (external_) {
       // inbound external message was not accepted
-      return td::Status::Error(-701, "inbound external message rejected by account "s + acc->addr.to_hex() +
-                                          " before smart-contract execution");
+      return td::Status::Error(-701,"inbound external message rejected by account "s + acc->addr.to_hex() +
+                                                           " before smart-contract execution");
     }
-    return td::Status::Error(-669, "cannot unpack input message for a new transaction");
+    return td::Status::Error(-669,"cannot unpack input message for a new transaction");
   }
 
   if (trans_->bounce_enabled) {
     if (!trans_->prepare_storage_phase(*storage_phase_cfg, true)) {
-      return td::Status::Error(
-          -669, "cannot create storage phase of a new transaction for smart contract "s + acc->addr.to_hex());
+      return td::Status::Error(-669,"cannot create storage phase of a new transaction for smart contract "s + acc->addr.to_hex());
     }
     if (need_credit_phase && !trans_->prepare_credit_phase()) {
-      return td::Status::Error(
-          -669, "cannot create credit phase of a new transaction for smart contract "s + acc->addr.to_hex());
+      return td::Status::Error(-669,"cannot create credit phase of a new transaction for smart contract "s + acc->addr.to_hex());
     }
   } else {
     if (need_credit_phase && !trans_->prepare_credit_phase()) {
-      return td::Status::Error(
-          -669, "cannot create credit phase of a new transaction for smart contract "s + acc->addr.to_hex());
+      return td::Status::Error(-669,"cannot create credit phase of a new transaction for smart contract "s + acc->addr.to_hex());
     }
     if (!trans_->prepare_storage_phase(*storage_phase_cfg, true, need_credit_phase)) {
-      return td::Status::Error(
-          -669, "cannot create storage phase of a new transaction for smart contract "s + acc->addr.to_hex());
+      return td::Status::Error(-669,"cannot create storage phase of a new transaction for smart contract "s + acc->addr.to_hex());
     }
   }
   return {};
