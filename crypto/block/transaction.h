@@ -453,7 +453,6 @@ struct Transaction {
   bool gas_limit_overridden{false};
   std::vector<Ref<vm::Cell>> storage_stat_updates;
   std::unique_ptr<StringLoggerTail> logger;
-  vm::VmLog vm_log;
   Transaction(const Account& _account, int ttype, ton::LogicalTime req_start_lt, ton::UnixTime _now,
               Ref<vm::Cell> _inmsg = {});
   bool unpack_input_msg(bool ihr_delivered, const ActionPhaseConfig* cfg);

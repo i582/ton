@@ -1900,7 +1900,7 @@ std::optional<Transaction::PrepareComputePhaseResult> Transaction::prepare_compu
   // auto log = create_vm_log(error_stream ? &ostream_logger : nullptr);
   LOG(DEBUG) << "creating VM";
 
-  vm_log = vm::VmLog();
+  auto vm_log = vm::VmLog();
   if (cfg.with_vm_log) {
     size_t log_max_size = 256;
     if (cfg.vm_log_verbosity > 4) {
