@@ -190,7 +190,7 @@ void destroy_emulator(void* em) {
 }
 
 const char *emulate_sbs(void *em, const char* libs, const char* account, const char* message, const char* params) {
-    // we need to allocate logger on the heap since it outlive this functions unlike `emulate_with_emulator`
+    // we need to allocate logger on the heap since it outlive this function unlike `emulate_with_emulator`
     StringLog* logger = new StringLog();
 
     td::log_interface = logger;
@@ -307,7 +307,7 @@ const char *emulate(const char *config, const char* libs, int verbosity, const c
 }
 
 void *setup_sbs_get_method(const char *params, const char* stack, const char* config) {
-    // we need to allocate logger on the heap since it outlive this functions unlike `run_get_method`
+    // we need to allocate logger on the heap since it outlive this function unlike `run_get_method`
     StringLog* logger = new StringLog();
 
     td::log_interface = logger;
