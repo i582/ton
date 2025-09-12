@@ -314,12 +314,12 @@ const char *emulator_vm_get_stack(const vm::VmState &vm) {
 
   vm::CellBuilder stack_cb;
   if (!vm.get_stack_const().serialize(stack_cb)) {
-    return nullptr;
+    ERROR_RESPONSE(PSTRING() << "Couldn't serialize stack");
   }
 
   auto stack_boc = cell_to_boc_b64(stack_cb.finalize());
   if (stack_boc.is_error()) {
-    return nullptr;
+    ERROR_RESPONSE(PSTRING() << "Couldn't serialize stack cell: " << stack_boc.move_as_error().to_string());
   }
 
   return strdup(stack_boc.move_as_ok().c_str());
@@ -345,6 +345,9 @@ const char *emulator_vm_get_c7(const vm::VmState &vm) {
 
 const char *emulator_vm_get_code_pos(const vm::VmState &vm) {
   const auto code = vm.get_code();
+  if (code.is_null()) {
+    return strdup("unknown:0");
+  }
 
   std::ostringstream rs;
   rs << code->get_base_cell()->get_hash().to_hex() << ":" << code->cur_pos();

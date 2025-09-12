@@ -80,6 +80,8 @@ td::Result<std::unique_ptr<TransactionEmulator::EmulationResult>> TransactionEmu
 }
 
 void TransactionEmulator::cleanup_shared_state() {
+  vm = nullptr;
+  logger = {};
   storage_prices_ = {};
   storage_phase_cfg_ = {&storage_prices_};
   compute_phase_cfg_ = {};
