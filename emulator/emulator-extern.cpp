@@ -115,7 +115,7 @@ const char *transaction_emulator_emulate_transaction_prepare(const char *shard_a
 
   auto shard_account_cell = boc_b64_to_cell(shard_account_boc);
   if (shard_account_cell.is_error()) {
-    ERROR_RESPONSE(PSTRING() << "Can't deserialize message boc: " << message_cell_r.move_as_error());
+    ERROR_RESPONSE(PSTRING() << "Can't deserialize shard account boc: " << shard_account_cell.move_as_error());
   }
   auto shard_account_slice = vm::load_cell_slice(shard_account_cell.ok_ref());
   block::gen::ShardAccount::Record shard_account;
@@ -133,10 +133,11 @@ const char *transaction_emulator_emulate_transaction_prepare(const char *shard_a
         ERROR_RESPONSE(PSTRING() <<  "Can't unpack inbound external message");
       }
       addr_slice = std::move(info.dest);
-    } else if (msg_tag == block::gen::CommonMsgInfo::int_msg_info) {
+    }
+    else if (msg_tag == block::gen::CommonMsgInfo::int_msg_info) {
       block::gen::CommonMsgInfo::Record_int_msg_info info;
       if (!tlb::unpack(message_cs, info)) {
-        ERROR_RESPONSE(PSTRING() << "Can't unpack inbound internal message");
+          ERROR_RESPONSE(PSTRING() << "Can't unpack inbound internal message");
       }
       addr_slice = std::move(info.dest);
     } else {
