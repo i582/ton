@@ -778,7 +778,7 @@ const char *tvm_emulator_run_get_method_prepare(const char *stack_boc, td::Ref<v
   }
   auto stack_cs = vm::load_cell_slice(stack_cell.move_as_ok());
   if (!vm::Stack::deserialize_to(stack_cs, stack)) {
-      ERROR_RESPONSE(PSTRING() << "Couldn't deserialize stack");
+     ERROR_RESPONSE(PSTRING() << "Couldn't deserialize stack");
   }
   return nullptr;
 }
@@ -789,8 +789,8 @@ const char *tvm_emulator_sbs_run_get_method(void *tvm_emulator, int method_id, c
     return error;
   }
 
-  auto emulator = static_cast<emulator::TvmEmulator *>(tvm_emulator);
-  auto result = emulator->run_get_method_sbs(method_id, stack);
+  const auto emulator = static_cast<emulator::TvmEmulator *>(tvm_emulator);
+  const auto result = emulator->run_get_method_debug(method_id, stack);
 
   return (const char*) result;
 }

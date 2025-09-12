@@ -61,7 +61,7 @@ public:
     return smc_.debug_step();
   }
 
-  int run_get_method_sbs(int method_id, td::Ref<vm::Stack> stack) {
+  int run_get_method_debug(int method_id, td::Ref<vm::Stack> stack) {
     return smc_.run_get_method_debug(args_.set_stack(stack).set_method_id(method_id));
   }
 

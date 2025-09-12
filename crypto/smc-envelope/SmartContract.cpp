@@ -440,10 +440,6 @@ SmartContract::Answer SmartContract::get_vm_result(vm::VmState& vm, State state,
     LOG(DEBUG) << "output actions:\n"
                << block::gen::OutList{res.output_actions_count(res.actions)}.as_string_ref(res.actions);
   }
-  // TODO: think about gas_credit_before
-  // LOG_IF(ERROR, gas_credit_before != 0 && (res.accepted && !res.success) && !mlib)
-  //     << "Accepted but failed with code " << res.code << "\n"
-  //     << res.gas_used << "\n";
   return res;
 }
 

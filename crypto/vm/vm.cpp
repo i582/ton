@@ -555,16 +555,7 @@ int VmState::run_inner() {
   Guard guard(this);
   do {
     res = run_step();
-  } while (res);
-
-  // We don't need this anymore since `sbs_step_inner` will run it if `res` is falsy
-  //
-  // if ((res | 1) == -1 && !try_commit()) {
-  //   VM_LOG(this) << "automatic commit failed (new data or action cells too deep)";
-  //   get_stack().clear();
-  //   get_stack().push_smallint(0);
-  //   return ~(int)Excno::cell_ov;
-  // }
+  } while (!res);
   return res;
 }
 
