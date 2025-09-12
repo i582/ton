@@ -249,36 +249,36 @@ bool TransactionEmulator::create_transaction_prepare(
       // inbound external message was not accepted
       value = td::Status::Error(-701, "inbound external message rejected by account "s + acc->addr.to_hex() +
                                           " before smart-contract execution");
-      return true;
+      return false;
     }
     value = td::Status::Error(-669, "cannot unpack input message for a new transaction");
-    return true;
+    return false;
   }
 
   if (trans_->bounce_enabled) {
     if (!trans_->prepare_storage_phase(*storage_phase_cfg, true)) {
       value = td::Status::Error(
           -669, "cannot create storage phase of a new transaction for smart contract "s + acc->addr.to_hex());
-      return true;
+      return false;
     }
     if (need_credit_phase && !trans_->prepare_credit_phase()) {
       value = td::Status::Error(
           -669, "cannot create credit phase of a new transaction for smart contract "s + acc->addr.to_hex());
-      return true;
+      return false;
     }
   } else {
     if (need_credit_phase && !trans_->prepare_credit_phase()) {
       value = td::Status::Error(
           -669, "cannot create credit phase of a new transaction for smart contract "s + acc->addr.to_hex());
-      return true;
+      return false;
     }
     if (!trans_->prepare_storage_phase(*storage_phase_cfg, true, need_credit_phase)) {
       value = td::Status::Error(
           -669, "cannot create storage phase of a new transaction for smart contract "s + acc->addr.to_hex());
-      return true;
+      return false;
     }
   }
-  return false;
+  return true;
 }
 
 td::Result<> TransactionEmulator::create_transaction(td::Ref<vm::Cell> msg_root, block::Account* acc,
@@ -287,8 +287,8 @@ td::Result<> TransactionEmulator::create_transaction(td::Ref<vm::Cell> msg_root,
                                                      block::ComputePhaseConfig* compute_phase_cfg,
                                                      block::ActionPhaseConfig* action_phase_cfg) {
   td::Result<> value;
-  if (create_transaction_prepare(msg_root, acc, utime, lt, trans_type, storage_phase_cfg, action_phase_cfg, value)) {
-    return value;
+  if (!create_transaction_prepare(msg_root, acc, utime, lt, trans_type, storage_phase_cfg, action_phase_cfg, value)) {
+    return value.move_as_error_prefix("cannot prepare transaction");
   }
 
   if (!trans_->execute_compute_phase(*compute_phase_cfg)) {
@@ -321,8 +321,8 @@ td::Result<bool> TransactionEmulator::create_transaction_debug(td::Ref<vm::Cell>
                                                                block::ComputePhaseConfig* compute_phase_cfg,
                                                                block::ActionPhaseConfig* action_phase_cfg) {
   td::Result<> value;
-  if (create_transaction_prepare(msg_root, acc, utime, lt, trans_type, storage_phase_cfg, action_phase_cfg, value)) {
-    return false;
+  if (!create_transaction_prepare(msg_root, acc, utime, lt, trans_type, storage_phase_cfg, action_phase_cfg, value)) {
+    return value.move_as_error_prefix("cannot prepare transaction");
   }
 
   if (!trans_->prepare_debug_compute_phase(*compute_phase_cfg)) {
