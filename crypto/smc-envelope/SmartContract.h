@@ -183,7 +183,7 @@ class SmartContract : public td::CntObject {
 
   int run_get_method_debug(Args args, std::unique_ptr<vm::VmState>& vm, std::unique_ptr<Logger>& logger);
   td::optional<Answer> debug_step(std::unique_ptr<vm::VmState>& vm, std::unique_ptr<Logger>& logger);
-  Answer get_result(const vm::VmState& vm, const Logger& logger);
+  Answer get_result(const vm::VmState& vm, const Logger& logger) const;
 
   size_t code_size() const;
   size_t data_size() const;
@@ -205,7 +205,7 @@ class SmartContract : public td::CntObject {
   State state_;
 
  private:
-  static Answer get_vm_result(vm::VmState& vm, State state, std::string logs);
+  static Answer get_vm_result(const vm::VmState& vm, State state, std::string logs);
   void prepare_get_method_args(Args& args) const;
 
   Answer run_smartcont(td::Ref<vm::Stack> stack, td::Ref<vm::Tuple> c7, vm::GasLimits gas, bool ignore_chksig,

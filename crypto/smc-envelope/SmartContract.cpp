@@ -414,7 +414,7 @@ int SmartContract::setup_vm(td::Ref<vm::Stack> stack, td::Ref<vm::Tuple> c7, vm:
 /**
  * Returns result of execution. This is the last stage of execution.
  */
-SmartContract::Answer SmartContract::get_vm_result(vm::VmState& vm, State state, std::string logs) {
+SmartContract::Answer SmartContract::get_vm_result(const vm::VmState& vm, State state, std::string logs) {
   SmartContract::Answer res;
   res.code = ~vm.get_exit_code();
   res.new_state = state;
@@ -447,7 +447,7 @@ SmartContract::Answer SmartContract::get_vm_result(vm::VmState& vm, State state,
   return res;
 }
 
-SmartContract::Answer SmartContract::get_result(const vm::VmState& vm, const Logger& logger) {
+SmartContract::Answer SmartContract::get_result(const vm::VmState& vm, const Logger& logger) const {
   if (vm.get_code().is_null()) {
     Answer res;
     res.code = static_cast<int>(vm::Excno::fatal);
