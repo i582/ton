@@ -227,23 +227,13 @@ std::shared_ptr<const block::Config> try_fetch_config_from_c7(td::Ref<vm::Tuple>
   return std::make_shared<block::Config>(std::move(global_config));
 }
 
-SmartContract::Answer run_smartcont(SmartContract::State state, td::Ref<vm::Stack> stack, td::Ref<vm::Tuple> c7,
-                                    vm::GasLimits gas, bool ignore_chksig, td::Ref<vm::Cell> libraries,
-                                    int vm_log_verbosity, bool debug_enabled,
-                                    std::shared_ptr<const block::Config> config) {
-  auto gas_credit = gas.gas_credit;
+vm::VmState init_vm(SmartContract::State state, td::Ref<vm::Stack> stack, td::Ref<vm::Tuple> c7, vm::GasLimits gas,
+                    bool ignore_chksig, td::Ref<vm::Cell> libraries, int vm_log_verbosity, bool debug_enabled,
+                    std::shared_ptr<const block::Config> config, td::LogInterface* logger) {
   vm::init_vm(debug_enabled).ensure();
   vm::DictionaryBase::get_empty_dictionary();
 
-  class Logger : public td::LogInterface {
-   public:
-    void append(td::CSlice slice) override {
-      res.append(slice.data(), slice.size());
-    }
-    std::string res;
-  };
-  Logger logger;
-  vm::VmLog log{&logger, td::LogOptions(VERBOSITY_NAME(DEBUG), true, false)};
+  vm::VmLog log{logger, td::LogOptions(VERBOSITY_NAME(DEBUG), true, false)};
   if (vm_log_verbosity > 1) {
     log.log_mask |= vm::VmLog::ExecLocation;
     if (vm_log_verbosity > 2) {
@@ -257,7 +247,6 @@ SmartContract::Answer run_smartcont(SmartContract::State state, td::Ref<vm::Stac
     }
   }
 
-  SmartContract::Answer res;
   if (GET_VERBOSITY_LEVEL() >= VERBOSITY_NAME(DEBUG)) {
     std::ostringstream os;
     stack->dump(os, 2);
@@ -276,44 +265,32 @@ SmartContract::Answer run_smartcont(SmartContract::State state, td::Ref<vm::Stac
       vm.set_max_data_depth(r_limits.ok().max_vm_data_depth);
     }
   }
+  return vm;
+}
+}  // namespace
+
+SmartContract::Answer SmartContract::run_smartcont(td::Ref<vm::Stack> stack,
+                                                   td::Ref<vm::Tuple> c7, vm::GasLimits gas, bool ignore_chksig,
+                                                   td::Ref<vm::Cell> libraries, int vm_log_verbosity,
+                                                   bool debug_enabled, std::shared_ptr<const block::Config> config) const {
+  auto gas_credit = gas.gas_credit;
+
+  Logger local_logger;
+  auto local_vm = init_vm(get_state(), stack, c7, gas, ignore_chksig, libraries, vm_log_verbosity, debug_enabled, config, &local_logger);
+
   try {
-    res.code = ~vm.run();
+    local_vm.run();
   } catch (...) {
     LOG(FATAL) << "catch unhandled exception";
   }
-  res.new_state = std::move(state);
-  res.stack = vm.get_stack_ref();
-  gas = vm.get_gas_limits();
-  res.gas_used = gas.gas_consumed();
-  res.accepted = gas.gas_credit == 0;
-  res.success = (res.accepted && vm.committed());
-  res.vm_log = logger.res;
-  if (GET_VERBOSITY_LEVEL() >= VERBOSITY_NAME(DEBUG)) {
-    LOG(DEBUG) << "VM log\n" << logger.res;
-    std::ostringstream os;
-    res.stack->dump(os, 2);
-    LOG(DEBUG) << "VM stack:\n" << os.str();
-    LOG(DEBUG) << "VM exit code: " << res.code;
-    LOG(DEBUG) << "VM accepted: " << res.accepted;
-    LOG(DEBUG) << "VM success: " << res.success;
-  }
-  auto mlib = vm.get_missing_library();
-  if (mlib) {
-    LOG(DEBUG) << "Missing library: " << mlib.value().to_hex();
-    res.missing_library = mlib.value();
-  }
-  if (res.success) {
-    res.new_state.data = vm.get_c4();
-    res.actions = vm.get_d(5);
-    LOG(DEBUG) << "output actions:\n"
-               << block::gen::OutList{res.output_actions_count(res.actions)}.as_string_ref(res.actions);
-  }
+
+  Answer res = get_vm_result(local_vm, get_state(), local_logger.res);
+  auto mlib = local_vm.get_missing_library();
   LOG_IF(ERROR, gas_credit != 0 && (res.accepted && !res.success) && !mlib)
       << "Accepted but failed with code " << res.code << "\n"
       << res.gas_used << "\n";
   return res;
 }
-}  // namespace
 
 td::Result<td::BufferSlice> SmartContract::Args::get_serialized_stack() {
   if (!stack) {
@@ -366,7 +343,7 @@ SmartContract::Answer SmartContract::run_method(Args args) {
   CHECK(args.method_id);
   args.stack.value().write().push_smallint(args.method_id.unwrap());
   auto res =
-      run_smartcont(get_state(), args.stack.unwrap(), args.c7.unwrap(), args.limits.unwrap(), args.ignore_chksig,
+      run_smartcont(args.stack.unwrap(), args.c7.unwrap(), args.limits.unwrap(), args.ignore_chksig,
                     args.libraries ? args.libraries.unwrap().get_root_cell() : td::Ref<vm::Cell>{},
                     args.vm_log_verbosity_level, args.debug_enabled, args.config ? args.config.value() : nullptr);
   state_ = res.new_state;
@@ -374,21 +351,17 @@ SmartContract::Answer SmartContract::run_method(Args args) {
 }
 
 SmartContract::Answer SmartContract::run_get_method(Args args) const {
-  if (args.c7 && !args.config) {
-    args.config = try_fetch_config_from_c7(args.c7.value());
-  }
-  if (!args.c7) {
-    args.c7 = prepare_vm_c7(args, state_.code);
-  }
-  if (!args.limits) {
-    args.limits = vm::GasLimits{1000000, 1000000};
-  }
-  if (!args.stack) {
-    args.stack = td::Ref<vm::Stack>(true);
-  }
-  CHECK(args.method_id);
-  args.stack.value().write().push_smallint(args.method_id.unwrap());
-  return run_smartcont(get_state(), args.stack.unwrap(), args.c7.unwrap(), args.limits.unwrap(), args.ignore_chksig,
+  prepare_get_method_args(args);
+  return run_smartcont(args.stack.unwrap(), args.c7.unwrap(), args.limits.unwrap(), args.ignore_chksig,
+                       args.libraries ? args.libraries.unwrap().get_root_cell() : td::Ref<vm::Cell>{},
+                       args.vm_log_verbosity_level, args.debug_enabled, args.config ? args.config.value() : nullptr);
+}
+
+// ReSharper disable once CppDFAConstantFunctionResult
+int SmartContract::run_get_method_debug(Args args) {
+  prepare_get_method_args(args);
+  // For debug mode we need only to setup VM for stepping
+  return setup_vm(args.stack.unwrap(), args.c7.unwrap(), args.limits.unwrap(), args.ignore_chksig,
                        args.libraries ? args.libraries.unwrap().get_root_cell() : td::Ref<vm::Cell>{},
                        args.vm_log_verbosity_level, args.debug_enabled, args.config ? args.config.value() : nullptr);
 }
@@ -404,5 +377,90 @@ SmartContract::Answer SmartContract::send_external_message(td::Ref<vm::Cell> cel
 SmartContract::Answer SmartContract::send_internal_message(td::Ref<vm::Cell> cell, Args args) {
   return run_method(
       args.set_stack(prepare_vm_stack(td::make_refint(args.amount), vm::load_cell_slice_ref(cell), args, 0)).set_method_id(0));
+}
+
+/**
+ * First step in get method execution
+ */
+void SmartContract::prepare_get_method_args(Args& args) const {
+  if (args.c7 && !args.config) {
+    args.config = try_fetch_config_from_c7(args.c7.value());
+  }
+  if (!args.c7) {
+    args.c7 = prepare_vm_c7(args, state_.code);
+  }
+  if (!args.limits) {
+    args.limits = vm::GasLimits{1000000, 1000000};
+  }
+  if (!args.stack) {
+    args.stack = td::Ref<vm::Stack>(true);
+  }
+  CHECK(args.method_id);
+  args.stack.value().write().push_smallint(args.method_id.unwrap());
+}
+
+int SmartContract::setup_vm(td::Ref<vm::Stack> stack, td::Ref<vm::Tuple> c7, vm::GasLimits gas, bool ignore_chksig,
+                            td::Ref<vm::Cell> libraries, int vm_log_verbosity, bool debug_enabled,
+                            std::shared_ptr<const block::Config> config) {
+  logger.clear();
+  vm = init_vm(get_state(), stack, c7, gas, ignore_chksig, libraries, vm_log_verbosity, debug_enabled, config, &logger);
+  return 0;
+}
+
+/**
+ * Returns result of execution. This is the last stage of execution.
+ */
+SmartContract::Answer SmartContract::get_vm_result(vm::VmState& vm, State state, std::string logs) {
+  SmartContract::Answer res;
+  res.code = ~vm.get_exit_code();
+  res.new_state = state;
+  res.stack = vm.get_stack_ref();
+  vm::GasLimits gas = vm.get_gas_limits();
+  res.gas_used = gas.gas_consumed();
+  res.accepted = gas.gas_credit == 0;
+  res.success = (res.accepted && vm.committed());
+  res.vm_log = logs;
+  if (GET_VERBOSITY_LEVEL() >= VERBOSITY_NAME(DEBUG)) {
+    LOG(DEBUG) << "VM log\n" << logs;
+    std::ostringstream os;
+    res.stack->dump(os, 2);
+    LOG(DEBUG) << "VM stack:\n" << os.str();
+    LOG(DEBUG) << "VM exit code: " << res.code;
+    LOG(DEBUG) << "VM accepted: " << res.accepted;
+    LOG(DEBUG) << "VM success: " << res.success;
+  }
+  auto mlib = vm.get_missing_library();
+  if (mlib) {
+    LOG(DEBUG) << "Missing library: " << mlib.value().to_hex();
+    res.missing_library = mlib.value();
+  }
+  if (res.success) {
+    res.new_state.data = vm.get_c4();
+    res.actions = vm.get_d(5);
+    LOG(DEBUG) << "output actions:\n"
+               << block::gen::OutList{res.output_actions_count(res.actions)}.as_string_ref(res.actions);
+  }
+  // TODO: think about gas_credit_before
+  // LOG_IF(ERROR, gas_credit_before != 0 && (res.accepted && !res.success) && !mlib)
+  //     << "Accepted but failed with code " << res.code << "\n"
+  //     << res.gas_used << "\n";
+  return res;
+}
+
+SmartContract::Answer SmartContract::get_result() {
+  return get_vm_result(vm, state_, logger.res);
+}
+
+td::optional<SmartContract::Answer> SmartContract::debug_step() {
+  td::optional<int> rescode;
+  try {
+    rescode = vm.debug_step();
+  } catch (...) {
+    LOG(FATAL) << "catch unhandled exception";
+  }
+  if (!rescode) {
+    return {};
+  }
+  return get_result();
 }
 }  // namespace ton

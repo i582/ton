@@ -19,6 +19,17 @@ class TransactionEmulator {
   bool debug_enabled_;
   td::Ref<vm::Tuple> prev_blocks_info_;
 
+  // Emulation state that persists throughout execution
+
+  std::vector<block::StoragePrices> storage_prices_;
+  block::StoragePhaseConfig storage_phase_cfg_{&storage_prices_};
+  block::ComputePhaseConfig compute_phase_cfg_;
+  block::ActionPhaseConfig action_phase_cfg_;
+  std::unique_ptr<block::transaction::Transaction> trans_;
+  block::Account account_;
+  bool external_{false};
+  block::SerializeConfig serialize_config_;
+
 public:
   TransactionEmulator(std::shared_ptr<block::Config> config, int vm_log_verbosity = 0) :
     config_(std::move(config)), libraries_(256), vm_log_verbosity_(vm_log_verbosity),
@@ -68,8 +79,24 @@ public:
     return unixtime_;
   }
 
-  td::Result<std::unique_ptr<EmulationResult>> emulate_transaction(
-      block::Account&& account, td::Ref<vm::Cell> msg_root, ton::UnixTime utime, ton::LogicalTime lt, int trans_type);
+  vm::VmState& vm_sbs() const {
+    return trans_->vm;
+  }
+
+  bool prepare_emulation(block::Account& account, ton::UnixTime& utime, ton::LogicalTime& lt,
+                         block::StoragePhaseConfig& storage_phase_cfg, block::ComputePhaseConfig& compute_phase_cfg,
+                         block::ActionPhaseConfig& action_phase_cfg, block::SerializeConfig& serialize_config,
+                         td::Result<std::unique_ptr<TransactionEmulator::EmulationResult>>& value);
+  td::Result<std::unique_ptr<EmulationResult>> emulate_transaction(block::Account&& account, td::Ref<vm::Cell> msg_root,
+                                                                   ton::UnixTime utime, ton::LogicalTime lt,
+                                                                   int trans_type);
+  td::Result<std::unique_ptr<EmulationResult>> finish_emulation(block::Account&& account,
+                                                                block::SerializeConfig serialize_config,
+                                                                double elapsed);
+  td::Result<bool> prepare_emulate_transaction_debug(block::Account&& account, td::Ref<vm::Cell> msg_root,
+                                                     ton::UnixTime utime, ton::LogicalTime lt, int trans_type);
+  td::Result<bool> debug_step() const;
+  td::Result<std::unique_ptr<EmulationResult>> get_emulation_result();
 
   td::Result<EmulationSuccess> emulate_transaction(block::Account&& account, td::Ref<vm::Cell> original_trans);
   td::Result<EmulationChain> emulate_transactions_chain(block::Account&& account, std::vector<td::Ref<vm::Cell>>&& original_transactions);
@@ -85,12 +112,23 @@ public:
 
 private:
   bool check_state_update(const block::Account& account, const block::gen::Transaction::Record& trans);
+  bool create_transaction_prepare(td::Ref<vm::Cell> msg_root, block::Account* acc, ton::UnixTime utime,
+                                  ton::LogicalTime lt, int trans_type, block::StoragePhaseConfig* storage_phase_cfg,
+                                  block::ActionPhaseConfig* action_phase_cfg, td::Result<>& value);
 
-  td::Result<std::unique_ptr<block::transaction::Transaction>> create_transaction(
+ td::Result<> create_transaction(
                                                          td::Ref<vm::Cell> msg_root, block::Account* acc,
                                                          ton::UnixTime utime, ton::LogicalTime lt, int trans_type,
                                                          block::StoragePhaseConfig* storage_phase_cfg,
                                                          block::ComputePhaseConfig* compute_phase_cfg,
                                                          block::ActionPhaseConfig* action_phase_cfg);
+
+  td::Result<bool> create_transaction_debug(td::Ref<vm::Cell> msg_root, block::Account* acc, ton::UnixTime utime,
+                                            ton::LogicalTime lt, int trans_type,
+                                            block::StoragePhaseConfig* storage_phase_cfg,
+                                            block::ComputePhaseConfig* compute_phase_cfg,
+                                            block::ActionPhaseConfig* action_phase_cfg);
+
+  td::Result<bool> transaction_step_debug() const;
 };
 } // namespace emulator

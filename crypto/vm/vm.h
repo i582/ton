@@ -108,6 +108,22 @@ class VmState final : public VmStateInterface {
   long long free_gas_consumed = 0;
   std::unique_ptr<ParentVmState> parent = nullptr;
 
+  /**
+   * Whenever to restore parent VM in case of RUNVM
+   */
+  bool need_restore_parent{false};
+
+  /**
+   * Result of execution of the last instructions
+   */
+  int exit_code{0};
+
+  /**
+   * True while executing single instruction
+   * TODO: Do we really need it?
+   */
+  bool sbs_running{false};
+
  public:
   enum {
     cell_load_gas_price = 100,
@@ -253,6 +269,8 @@ class VmState final : public VmStateInterface {
   td::BitArray<256> get_final_state_hash(int exit_code) const;
   int step();
   int run();
+  td::optional<int> debug_step();
+  int get_exit_code() const;
   Stack& get_stack() {
     return stack.write();
   }
@@ -447,6 +465,7 @@ class VmState final : public VmStateInterface {
  private:
   void init_cregs(bool same_c3 = false, bool push_0 = true);
   int run_inner();
+  int run_step();
 };
 
 struct ParentVmState {

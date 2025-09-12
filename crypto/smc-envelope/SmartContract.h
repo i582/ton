@@ -33,6 +33,21 @@ class SmartContract : public td::CntObject {
   static td::Ref<vm::CellSlice> empty_slice();
 
  public:
+  vm::VmState vm{};
+
+  class Logger : public td::LogInterface {
+   public:
+    void append(td::CSlice slice) override {
+      res.append(slice.data(), slice.size());
+    }
+    void clear() {
+      res.clear();
+    }
+    std::string res;
+  };
+
+  Logger logger;
+
   struct State {
     td::Ref<vm::Cell> code;
     td::Ref<vm::Cell> data;
@@ -169,6 +184,10 @@ class SmartContract : public td::CntObject {
   Answer run_get_method(td::Slice method, Args args = {}) const;
   Answer send_external_message(td::Ref<vm::Cell> cell, Args args = {});
   Answer send_internal_message(td::Ref<vm::Cell> cell, Args args = {});
+  Answer get_result();
+
+  int run_get_method_debug(Args args = {});
+  td::optional<Answer> debug_step();
 
   size_t code_size() const;
   size_t data_size() const;
@@ -188,5 +207,16 @@ class SmartContract : public td::CntObject {
 
  protected:
   State state_;
+
+ private:
+  static Answer get_vm_result(vm::VmState& vm, State state, std::string logs);
+  void prepare_get_method_args(Args& args) const;
+
+  Answer run_smartcont(td::Ref<vm::Stack> stack, td::Ref<vm::Tuple> c7, vm::GasLimits gas, bool ignore_chksig,
+                       td::Ref<vm::Cell> libraries, int vm_log_verbosity, bool debug_enabled,
+                       std::shared_ptr<const block::Config> config) const;
+  int setup_vm(td::Ref<vm::Stack> stack, td::Ref<vm::Tuple> c7, vm::GasLimits gas, bool ignore_chksig,
+               td::Ref<vm::Cell> libraries, int vm_log_verbosity, bool debug_enabled,
+               std::shared_ptr<const block::Config> config);
 };
 }  // namespace ton

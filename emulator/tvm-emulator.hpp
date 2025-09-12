@@ -3,9 +3,10 @@
 
 namespace emulator {
 class TvmEmulator {
+public:
   ton::SmartContract smc_;
   ton::SmartContract::Args args_;
-public:
+
   using Answer = ton::SmartContract::Answer;
 
   TvmEmulator(td::Ref<vm::Cell> code, td::Ref<vm::Cell> data): smc_({code, data}) {
@@ -51,6 +52,22 @@ public:
 
   void set_debug_enabled(bool debug_enabled) {
     args_.set_debug_enabled(debug_enabled);
+  }
+
+  vm::VmState& vm_sbs() {
+    return smc_.vm;
+  }
+
+  td::optional<Answer> sbs_step() {
+    return smc_.debug_step();
+  }
+
+  int run_get_method_sbs(int method_id, td::Ref<vm::Stack> stack) {
+    return smc_.run_get_method_debug(args_.set_stack(stack).set_method_id(method_id));
+  }
+
+  Answer sbs_result() {
+    return smc_.get_result();
   }
 
   Answer run_get_method(int method_id, td::Ref<vm::Stack> stack) {

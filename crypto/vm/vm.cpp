@@ -466,39 +466,109 @@ int VmState::step() {
   }
 }
 
+td::optional<int> VmState::debug_step() {
+  try {
+    if (!sbs_running) {
+      if (need_restore_parent) {
+        restore_parent_vm(~exit_code);
+      }
+      sbs_running = true;
+    }
+    int res_inner = run_step();
+    exit_code = res_inner;
+    sbs_running = false;
+
+    if (!res_inner) {
+      return {};
+    }
+  } catch (VmNoGas &vmoog) {
+    ++steps;
+    VM_LOG(this) << "unhandled out-of-gas exception: gas consumed=" << gas.gas_consumed()
+                  << ", limit=" << gas.gas_limit;
+    get_stack().clear();
+    get_stack().push_smallint(gas.gas_consumed());
+    exit_code = vmoog.get_errno();  // no ~ for unhandled exceptions (to make their faking impossible)
+  }
+
+  if (!parent) {
+    return exit_code;
+  }
+
+  // if there is a parent VM for current VM, return nullopt to continue execution of the code after RUNVM
+  // at the next step, we will restore parent VM and continue execution.
+  need_restore_parent = true;
+  return {};
+}
+
+/**
+ * Returns exit code of the execution of the whole code or the last instruction.
+ */
+int VmState::get_exit_code() const {
+  return exit_code;
+}
+
+/**
+ * Executes single instruction
+ */
+int VmState::run_step() {
+  int res;
+  Guard guard(this);
+  try {
+    try {
+      res = step();
+      VM_LOG_MASK(this, vm::VmLog::GasRemaining) << "gas remaining: " << gas.gas_remaining;
+      gas.check();
+    } catch (vm::CellBuilder::CellWriteError) {
+      throw VmError{Excno::cell_ov};
+    } catch (vm::CellBuilder::CellCreateError) {
+      throw VmError{Excno::cell_ov};
+    } catch (vm::CellSlice::CellReadError) {
+      throw VmError{Excno::cell_und};
+    }
+  } catch (const VmError& vme) {
+    VM_LOG(this) << "handling exception code " << vme.get_errno() << ": " << vme.get_msg();
+    try {
+      ++steps;
+      res = throw_exception(vme.get_errno());
+    } catch (const VmError& vme2) {
+      VM_LOG(this) << "exception " << vme2.get_errno() << " while handling exception: " << vme.get_msg();
+      return ~vme2.get_errno();
+    }
+  }
+
+  exit_code = res;
+
+  if (!res) {
+    // res will be false if there are no more instructions to run
+    if ((res | 1) == -1 && !try_commit()) {
+      VM_LOG(this) << "automatic commit failed (new data or action cells too deep)";
+      get_stack().clear();
+      get_stack().push_smallint(0);
+      return ~(int)Excno::cell_ov;
+    }
+    return res;
+  }
+  return res;
+}
+
+/**
+ * Executes instructions ony by one until end
+ */
 int VmState::run_inner() {
   int res;
   Guard guard(this);
   do {
-    try {
-      try {
-        res = step();
-        VM_LOG_MASK(this, vm::VmLog::GasRemaining) << "gas remaining: " << gas.gas_remaining;
-        gas.check();
-      } catch (vm::CellBuilder::CellWriteError) {
-        throw VmError{Excno::cell_ov};
-      } catch (vm::CellBuilder::CellCreateError) {
-        throw VmError{Excno::cell_ov};
-      } catch (vm::CellSlice::CellReadError) {
-        throw VmError{Excno::cell_und};
-      }
-    } catch (const VmError& vme) {
-      VM_LOG(this) << "handling exception code " << vme.get_errno() << ": " << vme.get_msg();
-      try {
-        ++steps;
-        res = throw_exception(vme.get_errno());
-      } catch (const VmError& vme2) {
-        VM_LOG(this) << "exception " << vme2.get_errno() << " while handling exception: " << vme.get_msg();
-        return ~vme2.get_errno();
-      }
-    }
-  } while (!res);
-  if ((res | 1) == -1 && !try_commit()) {
-    VM_LOG(this) << "automatic commit failed (new data or action cells too deep)";
-    get_stack().clear();
-    get_stack().push_smallint(0);
-    return ~(int)Excno::cell_ov;
-  }
+    res = run_step();
+  } while (res);
+
+  // We don't need this anymore since `sbs_step_inner` will run it if `res` is falsy
+  //
+  // if ((res | 1) == -1 && !try_commit()) {
+  //   VM_LOG(this) << "automatic commit failed (new data or action cells too deep)";
+  //   get_stack().clear();
+  //   get_stack().push_smallint(0);
+  //   return ~(int)Excno::cell_ov;
+  // }
   return res;
 }
 

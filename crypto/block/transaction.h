@@ -24,7 +24,9 @@
 #include "vm/cellslice.h"
 #include "vm/dict.h"
 #include "vm/boc.h"
+#include "vm/vm.h"
 #include <ostream>
+#include <optional>
 #include "tl/tlblib.hpp"
 #include "td/utils/bits.h"
 #include "ton/ton-types.h"
@@ -42,6 +44,57 @@ struct Account;
 namespace transaction {
 struct Transaction;
 }  // namespace transaction
+
+/**
+ * Logger that stores the tail of log messages.
+ *
+ * @param max_size The size of the buffer. Default is 256.
+ */
+class StringLoggerTail : public td::LogInterface {
+public:
+  explicit StringLoggerTail(size_t max_size = 256) : buf(max_size, '\0') {}
+
+  /**
+   * Appends a slice of data to the buffer.
+   *
+   * @param slice The slice of data to be appended.
+   */
+  void append(td::CSlice slice) override {
+    if (slice.size() > buf.size()) {
+      slice.remove_prefix(slice.size() - buf.size());
+    }
+    while (!slice.empty()) {
+      size_t s = std::min(buf.size() - pos, slice.size());
+      std::copy(slice.begin(), slice.begin() + s, buf.begin() + pos);
+      pos += s;
+      if (pos == buf.size()) {
+        pos = 0;
+        truncated = true;
+      }
+      slice.remove_prefix(s);
+    }
+  }
+
+  /**
+   * Retrieves the tail of the log.
+   *
+   * @returns The log as std::string.
+   */
+  std::string get_log() const {
+    if (truncated) {
+      std::string res = buf;
+      std::rotate(res.begin(), res.begin() + pos, res.end());
+      return res;
+    } else {
+      return buf.substr(0, pos);
+    }
+  }
+
+private:
+  std::string buf;
+  size_t pos = 0;
+  bool truncated = false;
+};
 
 struct CollatorError {
   std::string msg;
@@ -399,6 +452,9 @@ struct Transaction {
   td::optional<td::Bits256> new_storage_dict_hash;
   bool gas_limit_overridden{false};
   std::vector<Ref<vm::Cell>> storage_stat_updates;
+  std::unique_ptr<StringLoggerTail> logger;
+  vm::VmLog vm_log;
+  vm::VmState vm;
   Transaction(const Account& _account, int ttype, ton::LogicalTime req_start_lt, ton::UnixTime _now,
               Ref<vm::Cell> _inmsg = {});
   bool unpack_input_msg(bool ihr_delivered, const ActionPhaseConfig* cfg);
@@ -410,7 +466,32 @@ struct Transaction {
   Ref<vm::Stack> prepare_vm_stack(ComputePhase& cp);
   std::vector<Ref<vm::Cell>> compute_vm_libraries(const ComputePhaseConfig& cfg);
   bool run_precompiled_contract(const ComputePhaseConfig& cfg, precompiled::PrecompiledSmartContract& precompiled);
-  bool prepare_compute_phase(const ComputePhaseConfig& cfg);
+
+  bool execute_compute_phase(const ComputePhaseConfig& cfg);
+  bool prepare_debug_compute_phase(const ComputePhaseConfig& cfg);
+
+  struct PrepareComputePhaseResult {
+    bool skipped;
+    ComputePhase cp{};
+    std::unique_ptr<precompiled::PrecompiledSmartContract> precompiled_impl{};
+    td::optional<PrecompiledContractsConfig::Contract> precompiled{};
+    vm::GasLimits gas{};
+    Ref<vm::Stack> stack{};
+
+    static PrepareComputePhaseResult create_skipped(ComputePhase cp) {
+      return {true};
+    }
+
+    static PrepareComputePhaseResult create_precompiled(std::unique_ptr<precompiled::PrecompiledSmartContract> precompiled_impl) {
+      return {false, {}, (std::move(precompiled_impl))};
+    }
+  };
+
+  std::optional<PrepareComputePhaseResult> prepare_compute_phase(const ComputePhaseConfig& cfg);
+  bool run_compute_phase(const ComputePhaseConfig& cfg, ComputePhase& cp,
+                         td::optional<PrecompiledContractsConfig::Contract> precompiled, vm::GasLimits& gas,
+                         Ref<vm::Stack>& stack, bool single_step);
+  bool compute_phase_step_debug(const ComputePhaseConfig& cfg);
   bool prepare_action_phase(const ActionPhaseConfig& cfg);
   td::Status check_state_limits(const SizeLimitsConfig& size_limits, bool is_account_stat = true);
   bool prepare_bounce_phase(const ActionPhaseConfig& cfg);
