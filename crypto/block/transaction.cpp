@@ -1744,10 +1744,11 @@ bool Transaction::execute_compute_phase(const ComputePhaseConfig& cfg) {
   }
 
   auto& cp = *compute_phase.get();
-  return run_compute_phase(cfg, cp, res.vm, res.precompiled);
+  return run_compute_phase(cfg, cp, res.vm, res.logger, res.precompiled);
 }
 
-bool Transaction::prepare_debug_compute_phase(const ComputePhaseConfig& cfg, std::unique_ptr<vm::VmState>& vm) {
+bool Transaction::prepare_debug_compute_phase(const ComputePhaseConfig& cfg, std::unique_ptr<vm::VmState>& vm,
+                                              std::unique_ptr<StringLoggerTail>& logger) {
   auto maybe_res = prepare_compute_phase(cfg);
   if (!maybe_res) {
     return false;
@@ -1763,6 +1764,7 @@ bool Transaction::prepare_debug_compute_phase(const ComputePhaseConfig& cfg, std
   }
 
   *vm = std::move(res.vm);
+  logger = std::move(res.logger);
   return true;
 }
 
@@ -1901,6 +1903,7 @@ std::optional<Transaction::PrepareComputePhaseResult> Transaction::prepare_compu
   LOG(DEBUG) << "creating VM";
 
   auto vm_log = vm::VmLog();
+  std::unique_ptr<StringLoggerTail> logger = nullptr;
   if (cfg.with_vm_log) {
     size_t log_max_size = 256;
     if (cfg.vm_log_verbosity > 4) {
@@ -1935,20 +1938,22 @@ std::optional<Transaction::PrepareComputePhaseResult> Transaction::prepare_compu
   LOG(DEBUG) << "starting VM";
   cp.vm_init_state_hash = vm.get_state_hash();
 
-  return PrepareComputePhaseResult{false, std::move(vm), nullptr, precompiled};
+  return PrepareComputePhaseResult{false, std::move(vm), std::move(logger), nullptr, precompiled};
 }
 
 bool Transaction::run_compute_phase(const ComputePhaseConfig& cfg, ComputePhase& cp, vm::VmState& vm,
+                                    std::unique_ptr<StringLoggerTail>& logger,
                                     td::optional<PrecompiledContractsConfig::Contract> precompiled) {
   td::Timer timer;
   cp.exit_code = ~vm.run();
   double elapsed = timer.elapsed();
-  const bool compute_phase_result = get_compute_phase_result(cfg, cp, vm, precompiled, elapsed);
+  const bool compute_phase_result = get_compute_phase_result(cfg, cp, vm, logger, precompiled, elapsed);
   cp.vm_loaded_cells = vm.extract_loaded_cells();
   return compute_phase_result;
 }
 
 bool Transaction::get_compute_phase_result(const ComputePhaseConfig& cfg, ComputePhase& cp, const vm::VmState& vm,
+                                           std::unique_ptr<StringLoggerTail>& logger,
                                            td::optional<PrecompiledContractsConfig::Contract> precompiled,
                                            double elapsed) {
   LOG(DEBUG) << "VM terminated with exit code " << cp.exit_code;
@@ -2018,7 +2023,8 @@ bool Transaction::get_compute_phase_result(const ComputePhaseConfig& cfg, Comput
   return true;
 }
 
-bool Transaction::compute_phase_step_debug(const ComputePhaseConfig& cfg, std::unique_ptr<vm::VmState>& vm) {
+bool Transaction::compute_phase_step_debug(const ComputePhaseConfig& cfg, std::unique_ptr<vm::VmState>& vm,
+                                           std::unique_ptr<StringLoggerTail>& logger) {
   td::optional<int> res = vm->debug_step();
   if (!res) {
     return false;
@@ -2027,7 +2033,7 @@ bool Transaction::compute_phase_step_debug(const ComputePhaseConfig& cfg, std::u
   ComputePhase& cp = *(compute_phase.get());
   cp.exit_code = ~(*res);
 
-  return get_compute_phase_result(cfg, cp, *vm, {}, 0);
+  return get_compute_phase_result(cfg, cp, *vm, logger, {}, 0);
 }
 
 /**

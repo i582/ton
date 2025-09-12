@@ -452,7 +452,6 @@ struct Transaction {
   td::optional<td::Bits256> new_storage_dict_hash;
   bool gas_limit_overridden{false};
   std::vector<Ref<vm::Cell>> storage_stat_updates;
-  std::unique_ptr<StringLoggerTail> logger;
   Transaction(const Account& _account, int ttype, ton::LogicalTime req_start_lt, ton::UnixTime _now,
               Ref<vm::Cell> _inmsg = {});
   bool unpack_input_msg(bool ihr_delivered, const ActionPhaseConfig* cfg);
@@ -466,13 +465,16 @@ struct Transaction {
   bool run_precompiled_contract(const ComputePhaseConfig& cfg, precompiled::PrecompiledSmartContract& precompiled);
 
   bool execute_compute_phase(const ComputePhaseConfig& cfg);
-  bool prepare_debug_compute_phase(const ComputePhaseConfig& cfg, std::unique_ptr<vm::VmState>& vm);
+  bool prepare_debug_compute_phase(const ComputePhaseConfig& cfg, std::unique_ptr<vm::VmState>& vm,
+                                   std::unique_ptr<StringLoggerTail>& logger);
   bool get_compute_phase_result(const ComputePhaseConfig& cfg, ComputePhase& cp, const vm::VmState& vm,
+                                std::unique_ptr<StringLoggerTail>& logger,
                                 td::optional<PrecompiledContractsConfig::Contract> precompiled, double elapsed);
 
   struct PrepareComputePhaseResult {
     bool skipped;
     vm::VmState vm{};
+    std::unique_ptr<StringLoggerTail> logger{};
     std::unique_ptr<precompiled::PrecompiledSmartContract> precompiled_impl{};
     td::optional<PrecompiledContractsConfig::Contract> precompiled{};
 
@@ -481,14 +483,16 @@ struct Transaction {
     }
 
     static PrepareComputePhaseResult create_precompiled(std::unique_ptr<precompiled::PrecompiledSmartContract> precompiled_impl) {
-      return {false, {}, std::move(precompiled_impl)};
+      return {false, {}, nullptr, std::move(precompiled_impl)};
     }
   };
 
   std::optional<PrepareComputePhaseResult> prepare_compute_phase(const ComputePhaseConfig& cfg);
   bool run_compute_phase(const ComputePhaseConfig& cfg, ComputePhase& cp, vm::VmState& vm,
+                         std::unique_ptr<StringLoggerTail>& logger,
                          td::optional<PrecompiledContractsConfig::Contract> precompiled);
-  bool compute_phase_step_debug(const ComputePhaseConfig& cfg, std::unique_ptr<vm::VmState>& vm);
+  bool compute_phase_step_debug(const ComputePhaseConfig& cfg, std::unique_ptr<vm::VmState>& vm,
+                                std::unique_ptr<StringLoggerTail>& logger);
   bool prepare_action_phase(const ActionPhaseConfig& cfg);
   td::Status check_state_limits(const SizeLimitsConfig& size_limits, bool is_account_stat = true);
   bool prepare_bounce_phase(const ActionPhaseConfig& cfg);

@@ -22,9 +22,13 @@ class TransactionEmulator {
   // Emulation state that persists throughout execution
 
   /**
-   * Instance of VM used in step by step mode otherwise it is nullptr.
+   * Instance of VM used in step by step mode, otherwise it is nullptr.
    */
   std::unique_ptr<vm::VmState> vm{};
+  /**
+   * Logger used in step by step mode, otherwise it is nullptr.
+   */
+  std::unique_ptr<block::StringLoggerTail> logger{};
   std::vector<block::StoragePrices> storage_prices_;
   block::StoragePhaseConfig storage_phase_cfg_{&storage_prices_};
   block::ComputePhaseConfig compute_phase_cfg_{};

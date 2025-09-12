@@ -307,7 +307,7 @@ td::Result<bool> TransactionEmulator::run_transaction_debug(td::Ref<vm::Cell> ms
     return prepare_res.move_as_error_prefix("cannot prepare transaction");
   }
 
-  if (!trans_->prepare_debug_compute_phase(compute_phase_cfg_, vm)) {
+  if (!trans_->prepare_debug_compute_phase(compute_phase_cfg_, vm, logger)) {
     return td::Status::Error(-669,"cannot create compute phase of a new transaction for smart contract "s + acc->addr.to_hex());
   }
 
@@ -315,7 +315,7 @@ td::Result<bool> TransactionEmulator::run_transaction_debug(td::Ref<vm::Cell> ms
 }
 
 td::Result<bool> TransactionEmulator::transaction_step_debug() {
-  if (!trans_->compute_phase_step_debug(compute_phase_cfg_, vm)) {
+  if (!trans_->compute_phase_step_debug(compute_phase_cfg_, vm, logger)) {
     return false;
   }
 
