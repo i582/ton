@@ -1743,7 +1743,7 @@ bool Transaction::execute_compute_phase(const ComputePhaseConfig& cfg) {
     return run_precompiled_contract(cfg, *res.precompiled_impl);
   }
 
-  return run_compute_phase(cfg, res.cp, res.precompiled, res.gas, res.stack, false);
+  return run_compute_phase(cfg, res.cp, res.precompiled, res.gas, res.stack);
 }
 
 bool Transaction::prepare_debug_compute_phase(const ComputePhaseConfig& cfg) {
@@ -1934,17 +1934,9 @@ std::optional<Transaction::PrepareComputePhaseResult> Transaction::prepare_compu
 
 bool Transaction::run_compute_phase(const ComputePhaseConfig& cfg, ComputePhase& cp,
                                     td::optional<PrecompiledContractsConfig::Contract> precompiled, vm::GasLimits& gas,
-                                    Ref<vm::Stack>& stack, bool single_step) {
+                                    Ref<vm::Stack>& stack) {
   td::Timer timer;
-  if (single_step) {
-    auto res = vm.debug_step();
-    if (!res) {
-      return false;
-    }
-    cp.exit_code = *res;
-  } else {
-    cp.exit_code = vm.run();
-  }
+  cp.exit_code = ~vm.run();
 
   double elapsed = timer.elapsed();
   LOG(DEBUG) << "VM terminated with exit code " << cp.exit_code;

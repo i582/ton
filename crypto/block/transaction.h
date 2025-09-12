@@ -490,7 +490,7 @@ struct Transaction {
   std::optional<PrepareComputePhaseResult> prepare_compute_phase(const ComputePhaseConfig& cfg);
   bool run_compute_phase(const ComputePhaseConfig& cfg, ComputePhase& cp,
                          td::optional<PrecompiledContractsConfig::Contract> precompiled, vm::GasLimits& gas,
-                         Ref<vm::Stack>& stack, bool single_step);
+                         Ref<vm::Stack>& stack);
   bool compute_phase_step_debug(const ComputePhaseConfig& cfg);
   bool prepare_action_phase(const ActionPhaseConfig& cfg);
   td::Status check_state_limits(const SizeLimitsConfig& size_limits, bool is_account_stat = true);
