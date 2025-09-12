@@ -470,15 +470,12 @@ struct Transaction {
   bool execute_compute_phase(const ComputePhaseConfig& cfg);
   bool prepare_debug_compute_phase(const ComputePhaseConfig& cfg);
   bool get_compute_phase_result(const ComputePhaseConfig& cfg, ComputePhase& cp,
-                                td::optional<PrecompiledContractsConfig::Contract> precompiled, vm::GasLimits& gas,
-                                Ref<vm::Stack>& stack, double elapsed);
+                                td::optional<PrecompiledContractsConfig::Contract> precompiled, double elapsed);
 
   struct PrepareComputePhaseResult {
     bool skipped;
     std::unique_ptr<precompiled::PrecompiledSmartContract> precompiled_impl{};
     td::optional<PrecompiledContractsConfig::Contract> precompiled{};
-    vm::GasLimits gas{};
-    Ref<vm::Stack> stack{};
 
     static PrepareComputePhaseResult create_skipped() {
       return {true};
@@ -491,8 +488,7 @@ struct Transaction {
 
   std::optional<PrepareComputePhaseResult> prepare_compute_phase(const ComputePhaseConfig& cfg);
   bool run_compute_phase(const ComputePhaseConfig& cfg, ComputePhase& cp,
-                         td::optional<PrecompiledContractsConfig::Contract> precompiled, vm::GasLimits& gas,
-                         Ref<vm::Stack>& stack);
+                         td::optional<PrecompiledContractsConfig::Contract> precompiled);
   bool compute_phase_step_debug(const ComputePhaseConfig& cfg);
   bool prepare_action_phase(const ActionPhaseConfig& cfg);
   td::Status check_state_limits(const SizeLimitsConfig& size_limits, bool is_account_stat = true);

@@ -1744,7 +1744,7 @@ bool Transaction::execute_compute_phase(const ComputePhaseConfig& cfg) {
   }
 
   auto& cp = *compute_phase.get();
-  return run_compute_phase(cfg, cp, res.precompiled, res.gas, res.stack);
+  return run_compute_phase(cfg, cp, res.precompiled);
 }
 
 bool Transaction::prepare_debug_compute_phase(const ComputePhaseConfig& cfg) {
@@ -1930,29 +1930,28 @@ std::optional<Transaction::PrepareComputePhaseResult> Transaction::prepare_compu
   LOG(DEBUG) << "starting VM";
   cp.vm_init_state_hash = vm.get_state_hash();
 
-  return PrepareComputePhaseResult{false,nullptr, precompiled, gas, stack};
+  return PrepareComputePhaseResult{false,nullptr, precompiled};
 }
 
 bool Transaction::run_compute_phase(const ComputePhaseConfig& cfg, ComputePhase& cp,
-                                    td::optional<PrecompiledContractsConfig::Contract> precompiled, vm::GasLimits& gas,
-                                    Ref<vm::Stack>& stack) {
+                                    td::optional<PrecompiledContractsConfig::Contract> precompiled) {
   td::Timer timer;
   cp.exit_code = ~vm.run();
   double elapsed = timer.elapsed();
-  const bool compute_phase_result = get_compute_phase_result(cfg, cp, precompiled, gas, stack, elapsed);
+  const bool compute_phase_result = get_compute_phase_result(cfg, cp, precompiled, elapsed);
   cp.vm_loaded_cells = vm.extract_loaded_cells();
   return compute_phase_result;
 }
 
 bool Transaction::get_compute_phase_result(const ComputePhaseConfig& cfg, ComputePhase& cp,
                                            td::optional<PrecompiledContractsConfig::Contract> precompiled,
-                                           vm::GasLimits& gas, Ref<vm::Stack>& stack, double elapsed) {
+                                           double elapsed) {
   LOG(DEBUG) << "VM terminated with exit code " << cp.exit_code;
   cp.out_of_gas = (cp.exit_code == ~(int)vm::Excno::out_of_gas);
   cp.vm_final_state_hash = vm.get_final_state_hash(cp.exit_code);
-  stack = vm.get_stack_ref();
+  const auto stack = vm.get_stack_ref();
   cp.vm_steps = (int)vm.get_steps_count();
-  gas = vm.get_gas_limits();
+  const auto gas = vm.get_gas_limits();
   cp.gas_used = std::min<long long>(gas.gas_consumed(), gas.gas_limit);
   cp.accepted = (gas.gas_credit == 0);
   cp.success = (cp.accepted && vm.committed());
@@ -2023,9 +2022,7 @@ bool Transaction::compute_phase_step_debug(const ComputePhaseConfig& cfg) {
   ComputePhase& cp = *(compute_phase.get());
   cp.exit_code = ~(*res);
 
-  vm::GasLimits gas;
-  Ref<vm::Stack> stack;
-  return get_compute_phase_result(cfg, cp, {}, gas, stack, 0);
+  return get_compute_phase_result(cfg, cp, {}, 0);
 }
 
 /**

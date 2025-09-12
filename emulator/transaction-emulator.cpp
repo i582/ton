@@ -49,7 +49,7 @@ td::Result<> TransactionEmulator::prepare_emulation(block::Account& account, ton
   compute_phase_cfg.ignore_chksig = ignore_chksig_;
   compute_phase_cfg.with_vm_log = true;
   compute_phase_cfg.vm_log_verbosity = vm_log_verbosity_;
-  return {};
+  return td::Unit{};
 }
 
 td::Result<std::unique_ptr<TransactionEmulator::EmulationResult>> TransactionEmulator::finish_emulation(
@@ -262,7 +262,7 @@ td::Result<> TransactionEmulator::create_transaction_prepare(
       return td::Status::Error(-669,"cannot create storage phase of a new transaction for smart contract "s + acc->addr.to_hex());
     }
   }
-  return {};
+  return td::Unit{};
 }
 
 td::Result<> TransactionEmulator::create_transaction(td::Ref<vm::Cell> msg_root, block::Account* acc,
@@ -296,7 +296,7 @@ td::Result<> TransactionEmulator::create_transaction(td::Ref<vm::Cell> msg_root,
     return td::Status::Error(-669,"cannot create bounce phase of a new transaction for smart contract "s + acc->addr.to_hex());
   }
 
-  return {};
+  return td::Unit{};
 }
 
 td::Result<bool> TransactionEmulator::create_transaction_debug(td::Ref<vm::Cell> msg_root, block::Account* acc,
