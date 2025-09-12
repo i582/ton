@@ -3,9 +3,9 @@
 
 namespace emulator {
 class TvmEmulator {
-public:
   ton::SmartContract smc_;
   ton::SmartContract::Args args_;
+public:
 
   using Answer = ton::SmartContract::Answer;
 

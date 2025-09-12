@@ -778,7 +778,7 @@ const char *tvm_emulator_run_get_method_prepare(const char *stack_boc, td::Ref<v
   }
   auto stack_cs = vm::load_cell_slice(stack_cell.move_as_ok());
   if (!vm::Stack::deserialize_to(stack_cs, stack)) {
-    ERROR_RESPONSE(PSTRING() << "Couldn't deserialize stack");
+      ERROR_RESPONSE(PSTRING() << "Couldn't deserialize stack");
   }
   return nullptr;
 }
@@ -926,14 +926,14 @@ void run_method_detailed_result_destroy(void *detailed_result) {
 }
 
 const char *tvm_emulator_sbs_transaction_result(void *tvm_emulator) {
-  auto emulator = static_cast<emulator::TvmEmulator *>(tvm_emulator);
-  auto result = emulator->sbs_result();
+  const auto emulator = static_cast<emulator::TvmEmulator *>(tvm_emulator);
+  const auto result = emulator->sbs_result();
+  return tvm_emulator_get_method_result(result);
 }
 
 bool tvm_emulator_sbs_step(void *tvm_emulator) {
-  auto emulator = static_cast<emulator::TvmEmulator *>(tvm_emulator);
-
-  auto result = emulator->sbs_step();
+  const auto emulator = static_cast<emulator::TvmEmulator *>(tvm_emulator);
+  const auto result = emulator->sbs_step();
   return (bool) result;
 }
 
