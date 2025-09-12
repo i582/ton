@@ -84,10 +84,8 @@ public:
     return trans_->vm;
   }
 
-  td::Result<> prepare_emulation(block::Account& account, ton::UnixTime& utime, ton::LogicalTime& lt,
-                                 block::StoragePhaseConfig& storage_phase_cfg,
-                                 block::ComputePhaseConfig& compute_phase_cfg,
-                                 block::ActionPhaseConfig& action_phase_cfg, block::SerializeConfig& serialize_config);
+  td::Result<> prepare_emulation(block::Account& account, ton::UnixTime& utime, ton::LogicalTime& lt);
+  void cleanup_shared_state();
   td::Result<std::unique_ptr<EmulationResult>> emulate_transaction(block::Account&& account, td::Ref<vm::Cell> msg_root,
                                                                    ton::UnixTime utime, ton::LogicalTime lt,
                                                                    int trans_type);
@@ -113,23 +111,15 @@ public:
 
 private:
   bool check_state_update(const block::Account& account, const block::gen::Transaction::Record& trans);
-  td::Result<> create_transaction_prepare(td::Ref<vm::Cell> msg_root, block::Account* acc, ton::UnixTime utime,
-                                          ton::LogicalTime lt, int trans_type,
-                                          block::StoragePhaseConfig* storage_phase_cfg,
-                                          block::ActionPhaseConfig* action_phase_cfg);
+  td::Result<> prepare_transaction(td::Ref<vm::Cell> msg_root, block::Account* acc, ton::UnixTime utime,
+                                   ton::LogicalTime lt, int trans_type);
 
  td::Result<> create_transaction(
                                                          td::Ref<vm::Cell> msg_root, block::Account* acc,
-                                                         ton::UnixTime utime, ton::LogicalTime lt, int trans_type,
-                                                         block::StoragePhaseConfig* storage_phase_cfg,
-                                                         block::ComputePhaseConfig* compute_phase_cfg,
-                                                         block::ActionPhaseConfig* action_phase_cfg);
+                                                         ton::UnixTime utime, ton::LogicalTime lt, int trans_type);
 
   td::Result<bool> create_transaction_debug(td::Ref<vm::Cell> msg_root, block::Account* acc, ton::UnixTime utime,
-                                            ton::LogicalTime lt, int trans_type,
-                                            block::StoragePhaseConfig* storage_phase_cfg,
-                                            block::ComputePhaseConfig* compute_phase_cfg,
-                                            block::ActionPhaseConfig* action_phase_cfg);
+                                            ton::LogicalTime lt, int trans_type);
 
   td::Result<bool> transaction_step_debug() const;
 };
