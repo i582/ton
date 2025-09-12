@@ -447,10 +447,24 @@ SmartContract::Answer SmartContract::get_vm_result(vm::VmState& vm, State state,
 }
 
 SmartContract::Answer SmartContract::get_result() {
+  if (vm.get_code().is_null()) {
+    Answer res;
+    res.code = static_cast<int>(vm::Excno::fatal);
+    res.success = false;
+    res.accepted = false;
+    res.gas_used = 0;
+    res.vm_log = "VM not initialized";
+    return res;
+  }
   return get_vm_result(vm, state_, logger.res);
 }
 
 td::optional<SmartContract::Answer> SmartContract::debug_step() {
+  if (vm.get_code().is_null()) {
+    LOG(ERROR) << "Attempting debug step on uninitialized VM";
+    return {};
+  }
+  
   td::optional<int> rescode;
   try {
     rescode = vm.debug_step();

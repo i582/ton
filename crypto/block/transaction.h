@@ -482,7 +482,7 @@ struct Transaction {
     }
 
     static PrepareComputePhaseResult create_precompiled(std::unique_ptr<precompiled::PrecompiledSmartContract> precompiled_impl) {
-      return {false, (std::move(precompiled_impl))};
+      return {false, std::move(precompiled_impl)};
     }
   };
 

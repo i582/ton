@@ -256,6 +256,7 @@ bool transaction_emulator_sbs_step(void *transaction_emulator) {
 
   auto res = emulator->debug_step();
   if (res.is_error()) {
+    LOG(ERROR) << "Debug step failed: " << res.error().to_string();
     return false;
   }
 
@@ -942,7 +943,7 @@ const char *tvm_emulator_sbs_transaction_result(void *tvm_emulator) {
 bool tvm_emulator_sbs_step(void *tvm_emulator) {
   const auto emulator = static_cast<emulator::TvmEmulator *>(tvm_emulator);
   const auto result = emulator->sbs_step();
-  return (bool) result;
+  return static_cast<bool>(result);
 }
 
 const char *tvm_emulator_send_external_message(void *tvm_emulator, const char *message_body_boc) {

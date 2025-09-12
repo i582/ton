@@ -470,6 +470,7 @@ td::optional<int> VmState::debug_step() {
   try {
     if (need_restore_parent) {
       restore_parent_vm(~exit_code);
+      need_restore_parent = false;
     }
     int res_inner = run_step();
     if (!res_inner) {
@@ -482,6 +483,10 @@ td::optional<int> VmState::debug_step() {
     get_stack().clear();
     get_stack().push_smallint(gas.gas_consumed());
     exit_code = vmoog.get_errno();  // no ~ for unhandled exceptions (to make their faking impossible)
+  } catch (...) {
+    ++steps;
+    VM_LOG(this) << "unhandled exception during debug step";
+    exit_code = static_cast<int>(Excno::fatal);
   }
 
   if (parent) {
@@ -526,7 +531,9 @@ int VmState::run_step() {
       res = throw_exception(vme.get_errno());
     } catch (const VmError& vme2) {
       VM_LOG(this) << "exception " << vme2.get_errno() << " while handling exception: " << vme.get_msg();
-      return ~vme2.get_errno();
+      res = ~vme2.get_errno();
+      exit_code = res;
+      return res;
     }
   }
 
