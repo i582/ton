@@ -8,11 +8,11 @@ using td::Ref;
 using namespace std::string_literals;
 
 namespace emulator {
-td::Result<std::unique_ptr<TransactionEmulator::EmulationResult>> TransactionEmulator::prepare_emulation(block::Account& account, ton::UnixTime& utime, ton::LogicalTime& lt,
-                                                                                                         block::StoragePhaseConfig& storage_phase_cfg,
-                                                                                                         block::ComputePhaseConfig& compute_phase_cfg,
-                                                                                                         block::ActionPhaseConfig& action_phase_cfg,
-                                                                                                         block::SerializeConfig& serialize_config) {
+td::Result<> TransactionEmulator::prepare_emulation(block::Account& account, ton::UnixTime& utime, ton::LogicalTime& lt,
+                                                    block::StoragePhaseConfig& storage_phase_cfg,
+                                                    block::ComputePhaseConfig& compute_phase_cfg,
+                                                    block::ActionPhaseConfig& action_phase_cfg,
+                                                    block::SerializeConfig& serialize_config) {
   td::Ref<vm::Cell> old_mparams;
   storage_phase_cfg = {&storage_prices_};
   td::RefInt256 masterchain_create_fee, basechain_create_fee;

@@ -83,12 +83,10 @@ public:
     return trans_->vm;
   }
 
-  td::Result<std::unique_ptr<EmulationResult>> prepare_emulation(block::Account& account, ton::UnixTime& utime,
-                                                                 ton::LogicalTime& lt,
-                                                                 block::StoragePhaseConfig& storage_phase_cfg,
-                                                                 block::ComputePhaseConfig& compute_phase_cfg,
-                                                                 block::ActionPhaseConfig& action_phase_cfg,
-                                                                 block::SerializeConfig& serialize_config);
+  td::Result<> prepare_emulation(block::Account& account, ton::UnixTime& utime, ton::LogicalTime& lt,
+                                 block::StoragePhaseConfig& storage_phase_cfg,
+                                 block::ComputePhaseConfig& compute_phase_cfg,
+                                 block::ActionPhaseConfig& action_phase_cfg, block::SerializeConfig& serialize_config);
   td::Result<std::unique_ptr<EmulationResult>> emulate_transaction(block::Account&& account, td::Ref<vm::Cell> msg_root,
                                                                    ton::UnixTime utime, ton::LogicalTime lt,
                                                                    int trans_type);

@@ -332,8 +332,8 @@ void *setup_sbs_get_method(const char *params, const char* stack, const char* co
         return strdup(R"({"fail":true,"message":"Can't set params"})");
     }
 
-    if (!tvm_emulator_sbs_run_get_method(tvm, decoded_params.method_id, stack)) {
-      return strdup(R"({"fail":true,"message":"Can't prepare emulator"})");
+    if (const char *error = tvm_emulator_sbs_run_get_method(tvm, decoded_params.method_id, stack); error != nullptr) {
+      return strdup(error);
     }
 
     return tvm;

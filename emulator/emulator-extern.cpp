@@ -790,21 +790,17 @@ const char *tvm_emulator_run_get_method_prepare(const char *stack_boc, td::Ref<v
 
 const char *tvm_emulator_sbs_run_get_method(void *tvm_emulator, int method_id, const char *stack_boc) {
   td::Ref<vm::Stack> stack;
-  if (const char *error = tvm_emulator_run_get_method_prepare(stack_boc, stack)) {
+  if (const char *error = tvm_emulator_run_get_method_prepare(stack_boc, stack); error != nullptr) {
     return error;
   }
 
   const auto emulator = static_cast<emulator::TvmEmulator *>(tvm_emulator);
   const auto result = emulator->run_get_method_debug(method_id, stack);
   if (result != 0) {
-    return nullptr;
+    ERROR_RESPONSE(PSTRING() << "Couldn't prepare get method run");
   }
 
-  td::JsonBuilder jb;
-  auto json_obj = jb.enter_object();
-  json_obj("success", td::JsonTrue());
-  json_obj.leave();
-  return strdup(jb.string_builder().as_cslice().c_str());
+  return nullptr;
 }
 
 const char *tvm_emulator_get_method_result(emulator::TvmEmulator::Answer result) {
