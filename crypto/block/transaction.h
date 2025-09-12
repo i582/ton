@@ -475,18 +475,17 @@ struct Transaction {
 
   struct PrepareComputePhaseResult {
     bool skipped;
-    ComputePhase cp{};
     std::unique_ptr<precompiled::PrecompiledSmartContract> precompiled_impl{};
     td::optional<PrecompiledContractsConfig::Contract> precompiled{};
     vm::GasLimits gas{};
     Ref<vm::Stack> stack{};
 
-    static PrepareComputePhaseResult create_skipped(ComputePhase cp) {
+    static PrepareComputePhaseResult create_skipped() {
       return {true};
     }
 
     static PrepareComputePhaseResult create_precompiled(std::unique_ptr<precompiled::PrecompiledSmartContract> precompiled_impl) {
-      return {false, {}, (std::move(precompiled_impl))};
+      return {false, (std::move(precompiled_impl))};
     }
   };
 

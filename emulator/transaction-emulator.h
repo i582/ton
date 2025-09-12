@@ -79,7 +79,7 @@ public:
     return unixtime_;
   }
 
-  vm::VmState& vm_sbs() const {
+  const vm::VmState& get_vm() const {
     return trans_->vm;
   }
 

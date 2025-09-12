@@ -1743,7 +1743,8 @@ bool Transaction::execute_compute_phase(const ComputePhaseConfig& cfg) {
     return run_precompiled_contract(cfg, *res.precompiled_impl);
   }
 
-  return run_compute_phase(cfg, res.cp, res.precompiled, res.gas, res.stack);
+  auto& cp = *compute_phase.get();
+  return run_compute_phase(cfg, cp, res.precompiled, res.gas, res.stack);
 }
 
 bool Transaction::prepare_debug_compute_phase(const ComputePhaseConfig& cfg) {
@@ -1783,7 +1784,7 @@ std::optional<Transaction::PrepareComputePhaseResult> Transaction::prepare_compu
   if (td::sgn(balance.grams) <= 0) {
     // no gas
     cp.skip_reason = ComputePhase::sk_no_gas;
-    return PrepareComputePhaseResult::create_skipped(cp);
+    return PrepareComputePhaseResult::create_skipped();
   }
   // Compute gas limits
   if (!compute_gas_limits(cp, cfg)) {
@@ -1793,7 +1794,7 @@ std::optional<Transaction::PrepareComputePhaseResult> Transaction::prepare_compu
   if (!cp.gas_limit && !cp.gas_credit) {
     // no gas
     cp.skip_reason = ComputePhase::sk_no_gas;
-    return PrepareComputePhaseResult::create_skipped(cp);
+    return PrepareComputePhaseResult::create_skipped();
   }
   if (in_msg_state.not_null()) {
     LOG(DEBUG) << "HASH(in_msg_state) = " << in_msg_state->get_hash().bits().to_hex(256)
@@ -1807,7 +1808,7 @@ std::optional<Transaction::PrepareComputePhaseResult> Transaction::prepare_compu
     if (acc_status == Account::acc_uninit && cfg.is_address_suspended(account.workchain, account.addr)) {
       LOG(DEBUG) << "address is suspended, skipping compute phase";
       cp.skip_reason = ComputePhase::sk_suspended;
-      return PrepareComputePhaseResult::create_skipped(cp);
+      return PrepareComputePhaseResult::create_skipped();
     }
     use_msg_state = true;
     bool forbid_public_libs =
@@ -1816,31 +1817,31 @@ std::optional<Transaction::PrepareComputePhaseResult> Transaction::prepare_compu
           account.check_addr_rewrite_length(new_fixed_prefix_length))) {
       LOG(DEBUG) << "cannot unpack in_msg_state, or it has bad fixed_prefix_length; cannot init account state";
       cp.skip_reason = ComputePhase::sk_bad_state;
-      return PrepareComputePhaseResult::create_skipped(cp);
+      return PrepareComputePhaseResult::create_skipped();
     }
     if (acc_status == Account::acc_uninit && !check_in_msg_state_hash(cfg)) {
       LOG(DEBUG) << "in_msg_state hash mismatch, cannot init account state";
       cp.skip_reason = ComputePhase::sk_bad_state;
-      return PrepareComputePhaseResult::create_skipped(cp);
+      return PrepareComputePhaseResult::create_skipped();
     }
     if (cfg.disable_anycast && acc_status == Account::acc_uninit &&
         new_fixed_prefix_length > cfg.size_limits.max_acc_fixed_prefix_length) {
       LOG(DEBUG) << "cannot init account state: too big fixed prefix length (" << new_fixed_prefix_length << ", max "
                  << cfg.size_limits.max_acc_fixed_prefix_length << ")";
       cp.skip_reason = ComputePhase::sk_bad_state;
-      return PrepareComputePhaseResult::create_skipped(cp);
+      return PrepareComputePhaseResult::create_skipped();
     }
   } else if (acc_status != Account::acc_active) {
     // no state, cannot perform transactions
     cp.skip_reason = in_msg_state.not_null() ? ComputePhase::sk_bad_state : ComputePhase::sk_no_state;
-    return PrepareComputePhaseResult::create_skipped(cp);
+    return PrepareComputePhaseResult::create_skipped();
   } else if (in_msg_state.not_null()) {
     if (cfg.allow_external_unfreeze) {
       if (in_msg_extern && account.addr != in_msg_state->get_hash().bits()) {
         // only for external messages with non-zero initstate in active accounts
         LOG(DEBUG) << "in_msg_state hash mismatch in external message";
         cp.skip_reason = ComputePhase::sk_bad_state;
-        return PrepareComputePhaseResult::create_skipped(cp);
+        return PrepareComputePhaseResult::create_skipped();
       }
     }
     unpack_msg_state(cfg, true);  // use only libraries
@@ -1849,7 +1850,7 @@ std::optional<Transaction::PrepareComputePhaseResult> Transaction::prepare_compu
     if (in_msg_extern && in_msg_state.not_null() && account.addr != in_msg_state->get_hash().bits()) {
       LOG(DEBUG) << "in_msg_state hash mismatch in external message";
       cp.skip_reason = ComputePhase::sk_bad_state;
-      return PrepareComputePhaseResult::create_skipped(cp);
+      return PrepareComputePhaseResult::create_skipped();
     }
   }
   if (cfg.disable_anycast) {
@@ -1869,7 +1870,7 @@ std::optional<Transaction::PrepareComputePhaseResult> Transaction::prepare_compu
     cp.precompiled_gas_usage = gas_usage;
     if (gas_usage > cp.gas_limit) {
       cp.skip_reason = ComputePhase::sk_no_gas;
-      return PrepareComputePhaseResult::create_skipped(cp);
+      return PrepareComputePhaseResult::create_skipped();
     }
     auto impl = precompiled::get_implementation(new_code->get_hash().bits());
     if (impl != nullptr && !cfg.dont_run_precompiled_ && impl->required_version() <= cfg.global_version) {
@@ -1929,7 +1930,7 @@ std::optional<Transaction::PrepareComputePhaseResult> Transaction::prepare_compu
   LOG(DEBUG) << "starting VM";
   cp.vm_init_state_hash = vm.get_state_hash();
 
-  return PrepareComputePhaseResult{false, cp, nullptr, precompiled, gas, stack};
+  return PrepareComputePhaseResult{false,nullptr, precompiled, gas, stack};
 }
 
 bool Transaction::run_compute_phase(const ComputePhaseConfig& cfg, ComputePhase& cp,
@@ -2020,6 +2021,7 @@ bool Transaction::compute_phase_step_debug(const ComputePhaseConfig& cfg) {
   }
 
   ComputePhase& cp = *(compute_phase.get());
+  cp.exit_code = ~(*res);
 
   vm::GasLimits gas;
   Ref<vm::Stack> stack;

@@ -243,7 +243,12 @@ const char *transaction_emulator_sbs_emulate_transaction(void *transaction_emula
   if (result.is_error()) {
     ERROR_RESPONSE(PSTRING() << "Emulate transaction failed: " << result.move_as_error());
   }
-  return (const char*) result.move_as_ok();
+
+  td::JsonBuilder jb;
+  auto json_obj = jb.enter_object();
+  json_obj("success", td::JsonTrue());
+  json_obj.leave();
+  return strdup(jb.string_builder().as_cslice().c_str());
 }
 
 bool transaction_emulator_sbs_step(void *transaction_emulator) {
@@ -351,19 +356,19 @@ const char *emulator_vm_get_code_pos(const vm::VmState &vm) {
 
 const char *transaction_emulator_sbs_get_stack(void *tvm_emulator) {
   const auto emulator = static_cast<emulator::TransactionEmulator *>(tvm_emulator);
-  const auto &vm = emulator->vm_sbs();
+  const auto &vm = emulator->get_vm();
   return emulator_vm_get_stack(vm);
 }
 
 const char *transaction_emulator_sbs_get_c7(void *tvm_emulator) {
   const auto emulator = static_cast<emulator::TransactionEmulator *>(tvm_emulator);
-  const auto &vm = emulator->vm_sbs();
+  const auto &vm = emulator->get_vm();
   return emulator_vm_get_c7(vm);
 }
 
 const char *transaction_emulator_sbs_get_code_pos(void *tvm_emulator) {
   const auto emulator = static_cast<emulator::TransactionEmulator *>(tvm_emulator);
-  const auto &vm = emulator->vm_sbs();
+  const auto &vm = emulator->get_vm();
   return emulator_vm_get_code_pos(vm);
 }
 
@@ -785,14 +790,21 @@ const char *tvm_emulator_run_get_method_prepare(const char *stack_boc, td::Ref<v
 
 const char *tvm_emulator_sbs_run_get_method(void *tvm_emulator, int method_id, const char *stack_boc) {
   td::Ref<vm::Stack> stack;
-  if (const char* error = tvm_emulator_run_get_method_prepare(stack_boc, stack)) {
+  if (const char *error = tvm_emulator_run_get_method_prepare(stack_boc, stack)) {
     return error;
   }
 
   const auto emulator = static_cast<emulator::TvmEmulator *>(tvm_emulator);
   const auto result = emulator->run_get_method_debug(method_id, stack);
+  if (!result) {
+    return nullptr;
+  }
 
-  return (const char*) result;
+  td::JsonBuilder jb;
+  auto json_obj = jb.enter_object();
+  json_obj("success", td::JsonTrue());
+  json_obj.leave();
+  return strdup(jb.string_builder().as_cslice().c_str());
 }
 
 const char *tvm_emulator_get_method_result(emulator::TvmEmulator::Answer result) {

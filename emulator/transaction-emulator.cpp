@@ -33,9 +33,9 @@ bool TransactionEmulator::prepare_emulation(block::Account& account, ton::UnixTi
     return true;
   }
 
-  const auto res = vm::init_vm(debug_enabled_);
+  auto res = vm::init_vm(debug_enabled_);
   if (res.is_error()) {
-    value = fetch_res.move_as_error();
+    value = res.move_as_error();
     return true;
   }
 

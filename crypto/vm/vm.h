@@ -109,12 +109,12 @@ class VmState final : public VmStateInterface {
   std::unique_ptr<ParentVmState> parent = nullptr;
 
   /**
-   * Whenever to restore parent VM in case of RUNVM
+   * Whenever to restore parent VM in case of RUNVM in step by step mode.
    */
   bool need_restore_parent{false};
 
   /**
-   * Result of execution of the last instructions
+   * Result of execution of the last instructions or the whole execution
    */
   int exit_code{0};
 
