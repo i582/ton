@@ -111,7 +111,7 @@ td::Result<bool> TransactionEmulator::prepare_emulate_transaction_debug(
     account_ = std::move(account);
 
     td::Result<std::unique_ptr<EmulationResult>> value;
-    if (prepare_emulation(account, utime, lt, storage_phase_cfg_, compute_phase_cfg_, action_phase_cfg_,
+    if (prepare_emulation(account_, utime, lt, storage_phase_cfg_, compute_phase_cfg_, action_phase_cfg_,
                           serialize_config_, value)) {
       return false;
     }
