@@ -5,6 +5,14 @@ namespace emulator {
 class TvmEmulator {
   ton::SmartContract smc_;
   ton::SmartContract::Args args_;
+  /**
+   * Instance of VM used in step by step mode, otherwise it is nullptr.
+   */
+  std::unique_ptr<vm::VmState> vm{};
+  /**
+   * Logger used in step by step mode, otherwise it is nullptr.
+   */
+  std::unique_ptr<ton::SmartContract::Logger> logger{};
 public:
   using Answer = ton::SmartContract::Answer;
 
@@ -53,20 +61,20 @@ public:
     args_.set_debug_enabled(debug_enabled);
   }
 
-  vm::VmState& vm_sbs() {
-    return smc_.vm;
+  const vm::VmState& get_vm() const {
+    return *vm;
   }
 
-  td::optional<Answer> sbs_step() {
-    return smc_.debug_step();
+  td::optional<Answer> debug_step() {
+    return smc_.debug_step(vm, logger);
   }
 
   int run_get_method_debug(int method_id, td::Ref<vm::Stack> stack) {
-    return smc_.run_get_method_debug(args_.set_stack(stack).set_method_id(method_id));
+    return smc_.run_get_method_debug(args_.set_stack(stack).set_method_id(method_id), vm, logger);
   }
 
   Answer sbs_result() {
-    return smc_.get_result();
+    return smc_.get_result(*vm, *logger);
   }
 
   Answer run_get_method(int method_id, td::Ref<vm::Stack> stack) {

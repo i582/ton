@@ -275,17 +275,17 @@ SmartContract::Answer SmartContract::run_smartcont(td::Ref<vm::Stack> stack,
                                                    bool debug_enabled, std::shared_ptr<const block::Config> config) const {
   auto gas_credit = gas.gas_credit;
 
-  Logger local_logger;
-  auto local_vm = init_vm(get_state(), stack, c7, gas, ignore_chksig, libraries, vm_log_verbosity, debug_enabled, config, &local_logger);
+  Logger logger;
+  auto vm = init_vm(get_state(), stack, c7, gas, ignore_chksig, libraries, vm_log_verbosity, debug_enabled, config, &logger);
 
   try {
-    local_vm.run();
+    vm.run();
   } catch (...) {
     LOG(FATAL) << "catch unhandled exception";
   }
 
-  Answer res = get_vm_result(local_vm, get_state(), local_logger.res);
-  auto mlib = local_vm.get_missing_library();
+  Answer res = get_vm_result(vm, get_state(), logger.res);
+  auto mlib = vm.get_missing_library();
   LOG_IF(ERROR, gas_credit != 0 && (res.accepted && !res.success) && !mlib)
       << "Accepted but failed with code " << res.code << "\n"
       << res.gas_used << "\n";
@@ -358,12 +358,12 @@ SmartContract::Answer SmartContract::run_get_method(Args args) const {
 }
 
 // ReSharper disable once CppDFAConstantFunctionResult
-int SmartContract::run_get_method_debug(Args args) {
+int SmartContract::run_get_method_debug(Args args, std::unique_ptr<vm::VmState>& vm, std::unique_ptr<Logger>& logger) {
   prepare_get_method_args(args);
   // For debug mode we need only to setup VM for stepping
   return setup_vm(args.stack.unwrap(), args.c7.unwrap(), args.limits.unwrap(), args.ignore_chksig,
                        args.libraries ? args.libraries.unwrap().get_root_cell() : td::Ref<vm::Cell>{},
-                       args.vm_log_verbosity_level, args.debug_enabled, args.config ? args.config.value() : nullptr);
+                       args.vm_log_verbosity_level, args.debug_enabled, args.config ? args.config.value() : nullptr, vm, logger);
 }
 
 SmartContract::Answer SmartContract::run_get_method(td::Slice method, Args args) const {
@@ -401,12 +401,15 @@ void SmartContract::prepare_get_method_args(Args& args) const {
 
 int SmartContract::setup_vm(td::Ref<vm::Stack> stack, td::Ref<vm::Tuple> c7, vm::GasLimits gas, bool ignore_chksig,
                             td::Ref<vm::Cell> libraries, int vm_log_verbosity, bool debug_enabled,
-                            std::shared_ptr<const block::Config> config) {
-  logger.clear();
-  vm = init_vm(get_state(), stack, c7, gas, ignore_chksig, libraries, vm_log_verbosity, debug_enabled, config, &logger);
-  if (vm.get_code().is_null() || stack.is_null()) {
+                            std::shared_ptr<const block::Config> config, std::unique_ptr<vm::VmState>& vm,
+                            std::unique_ptr<Logger>& logger) const {
+  logger = std::make_unique<Logger>();
+  logger->clear();
+  auto vm_ = init_vm(get_state(), stack, c7, gas, ignore_chksig, libraries, vm_log_verbosity, debug_enabled, config, logger.get());
+  if (vm_.get_code().is_null() || stack.is_null()) {
     return static_cast<int>(vm::Excno::fatal);  // no ~ for unhandled exceptions
   }
+  vm = std::make_unique<vm::VmState>(std::move(vm_));
   return 0;
 }
 
@@ -446,7 +449,7 @@ SmartContract::Answer SmartContract::get_vm_result(vm::VmState& vm, State state,
   return res;
 }
 
-SmartContract::Answer SmartContract::get_result() {
+SmartContract::Answer SmartContract::get_result(const vm::VmState& vm, const Logger& logger) {
   if (vm.get_code().is_null()) {
     Answer res;
     res.code = static_cast<int>(vm::Excno::fatal);
@@ -456,24 +459,24 @@ SmartContract::Answer SmartContract::get_result() {
     res.vm_log = "VM not initialized";
     return res;
   }
-  return get_vm_result(vm, state_, logger.res);
+  return get_vm_result(const_cast<vm::VmState&>(vm), state_, logger.res);
 }
 
-td::optional<SmartContract::Answer> SmartContract::debug_step() {
-  if (vm.get_code().is_null()) {
+td::optional<SmartContract::Answer> SmartContract::debug_step(std::unique_ptr<vm::VmState>& vm, std::unique_ptr<Logger>& logger) {
+  if (!vm || vm->get_code().is_null()) {
     LOG(ERROR) << "Attempting debug step on uninitialized VM";
     return {};
   }
   
   td::optional<int> rescode;
   try {
-    rescode = vm.debug_step();
+    rescode = vm->debug_step();
   } catch (...) {
     LOG(FATAL) << "catch unhandled exception";
   }
   if (!rescode) {
     return {};
   }
-  return get_result();
+  return get_result(*vm, *logger);
 }
 }  // namespace ton

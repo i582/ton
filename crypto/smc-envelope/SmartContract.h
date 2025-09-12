@@ -33,10 +33,8 @@ class SmartContract : public td::CntObject {
   static td::Ref<vm::CellSlice> empty_slice();
 
  public:
-  vm::VmState vm{};
-
   class Logger : public td::LogInterface {
-   public:
+  public:
     void append(td::CSlice slice) override {
       res.append(slice.data(), slice.size());
     }
@@ -45,8 +43,6 @@ class SmartContract : public td::CntObject {
     }
     std::string res;
   };
-
-  Logger logger;
 
   struct State {
     td::Ref<vm::Cell> code;
@@ -184,10 +180,10 @@ class SmartContract : public td::CntObject {
   Answer run_get_method(td::Slice method, Args args = {}) const;
   Answer send_external_message(td::Ref<vm::Cell> cell, Args args = {});
   Answer send_internal_message(td::Ref<vm::Cell> cell, Args args = {});
-  Answer get_result();
 
-  int run_get_method_debug(Args args = {});
-  td::optional<Answer> debug_step();
+  int run_get_method_debug(Args args, std::unique_ptr<vm::VmState>& vm, std::unique_ptr<Logger>& logger);
+  td::optional<Answer> debug_step(std::unique_ptr<vm::VmState>& vm, std::unique_ptr<Logger>& logger);
+  Answer get_result(const vm::VmState& vm, const Logger& logger);
 
   size_t code_size() const;
   size_t data_size() const;
@@ -217,6 +213,7 @@ class SmartContract : public td::CntObject {
                        std::shared_ptr<const block::Config> config) const;
   int setup_vm(td::Ref<vm::Stack> stack, td::Ref<vm::Tuple> c7, vm::GasLimits gas, bool ignore_chksig,
                td::Ref<vm::Cell> libraries, int vm_log_verbosity, bool debug_enabled,
-               std::shared_ptr<const block::Config> config);
+               std::shared_ptr<const block::Config> config, std::unique_ptr<vm::VmState>& vm,
+               std::unique_ptr<Logger>& logger) const;
 };
 }  // namespace ton

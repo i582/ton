@@ -759,19 +759,19 @@ bool tvm_emulator_set_debug_enabled(void *tvm_emulator, bool debug_enabled) {
 
 const char *tvm_emulator_sbs_get_stack(void *tvm_emulator) {
   const auto emulator = static_cast<emulator::TvmEmulator *>(tvm_emulator);
-  const auto &vm = emulator->vm_sbs();
+  const auto &vm = emulator->get_vm();
   return emulator_vm_get_stack(vm);
 }
 
 const char *tvm_emulator_sbs_get_c7(void *tvm_emulator) {
   const auto emulator = static_cast<emulator::TvmEmulator *>(tvm_emulator);
-  const auto &vm = emulator->vm_sbs();
+  const auto &vm = emulator->get_vm();
   return emulator_vm_get_c7(vm);
 }
 
 const char* tvm_emulator_sbs_get_code_pos(void *tvm_emulator) {
   const auto emulator = static_cast<emulator::TvmEmulator *>(tvm_emulator);
-  const auto& vm = emulator->vm_sbs();
+  const auto& vm = emulator->get_vm();
   return emulator_vm_get_code_pos(vm);
 }
 
@@ -942,7 +942,7 @@ const char *tvm_emulator_sbs_transaction_result(void *tvm_emulator) {
 
 bool tvm_emulator_sbs_step(void *tvm_emulator) {
   const auto emulator = static_cast<emulator::TvmEmulator *>(tvm_emulator);
-  const auto result = emulator->sbs_step();
+  const auto result = emulator->debug_step();
   return static_cast<bool>(result);
 }
 
