@@ -112,9 +112,10 @@ public:
 
 private:
   bool check_state_update(const block::Account& account, const block::gen::Transaction::Record& trans);
-  bool create_transaction_prepare(td::Ref<vm::Cell> msg_root, block::Account* acc, ton::UnixTime utime,
-                                  ton::LogicalTime lt, int trans_type, block::StoragePhaseConfig* storage_phase_cfg,
-                                  block::ActionPhaseConfig* action_phase_cfg, td::Result<>& value);
+  td::Result<> create_transaction_prepare(td::Ref<vm::Cell> msg_root, block::Account* acc, ton::UnixTime utime,
+                                          ton::LogicalTime lt, int trans_type,
+                                          block::StoragePhaseConfig* storage_phase_cfg,
+                                          block::ActionPhaseConfig* action_phase_cfg);
 
  td::Result<> create_transaction(
                                                          td::Ref<vm::Cell> msg_root, block::Account* acc,

@@ -224,10 +224,9 @@ bool TransactionEmulator::check_state_update(const block::Account& account, cons
     hash_update.new_hash == account.total_state->get_hash().bits();
 }
 
-bool TransactionEmulator::create_transaction_prepare(
+td::Result<> TransactionEmulator::create_transaction_prepare(
     td::Ref<vm::Cell> msg_root, block::Account* acc, ton::UnixTime utime, ton::LogicalTime lt, int trans_type,
-    block::StoragePhaseConfig* storage_phase_cfg, block::ActionPhaseConfig* action_phase_cfg,
-    td::Result<>& value) {
+    block::StoragePhaseConfig* storage_phase_cfg, block::ActionPhaseConfig* action_phase_cfg) {
   external_ = false;
   bool ihr_delivered{false}, need_credit_phase{false};
 
@@ -247,38 +246,32 @@ bool TransactionEmulator::create_transaction_prepare(
   if (msg_root.not_null() && !trans_->unpack_input_msg(ihr_delivered, action_phase_cfg)) {
     if (external_) {
       // inbound external message was not accepted
-      value = td::Status::Error(-701, "inbound external message rejected by account "s + acc->addr.to_hex() +
+      return td::Status::Error(-701, "inbound external message rejected by account "s + acc->addr.to_hex() +
                                           " before smart-contract execution");
-      return false;
     }
-    value = td::Status::Error(-669, "cannot unpack input message for a new transaction");
-    return false;
+    return td::Status::Error(-669, "cannot unpack input message for a new transaction");
   }
 
   if (trans_->bounce_enabled) {
     if (!trans_->prepare_storage_phase(*storage_phase_cfg, true)) {
-      value = td::Status::Error(
+      return td::Status::Error(
           -669, "cannot create storage phase of a new transaction for smart contract "s + acc->addr.to_hex());
-      return false;
     }
     if (need_credit_phase && !trans_->prepare_credit_phase()) {
-      value = td::Status::Error(
+      return td::Status::Error(
           -669, "cannot create credit phase of a new transaction for smart contract "s + acc->addr.to_hex());
-      return false;
     }
   } else {
     if (need_credit_phase && !trans_->prepare_credit_phase()) {
-      value = td::Status::Error(
+      return td::Status::Error(
           -669, "cannot create credit phase of a new transaction for smart contract "s + acc->addr.to_hex());
-      return false;
     }
     if (!trans_->prepare_storage_phase(*storage_phase_cfg, true, need_credit_phase)) {
-      value = td::Status::Error(
+      return td::Status::Error(
           -669, "cannot create storage phase of a new transaction for smart contract "s + acc->addr.to_hex());
-      return false;
     }
   }
-  return true;
+  return {};
 }
 
 td::Result<> TransactionEmulator::create_transaction(td::Ref<vm::Cell> msg_root, block::Account* acc,
@@ -286,9 +279,9 @@ td::Result<> TransactionEmulator::create_transaction(td::Ref<vm::Cell> msg_root,
                                                      block::StoragePhaseConfig* storage_phase_cfg,
                                                      block::ComputePhaseConfig* compute_phase_cfg,
                                                      block::ActionPhaseConfig* action_phase_cfg) {
-  td::Result<> value;
-  if (!create_transaction_prepare(msg_root, acc, utime, lt, trans_type, storage_phase_cfg, action_phase_cfg, value)) {
-    return value.move_as_error_prefix("cannot prepare transaction");
+  auto prepare_res = create_transaction_prepare(msg_root, acc, utime, lt, trans_type, storage_phase_cfg, action_phase_cfg);
+  if (prepare_res.is_error()) {
+    return prepare_res.move_as_error_prefix("cannot prepare transaction");
   }
 
   if (!trans_->execute_compute_phase(*compute_phase_cfg)) {
@@ -320,9 +313,9 @@ td::Result<bool> TransactionEmulator::create_transaction_debug(td::Ref<vm::Cell>
                                                                block::StoragePhaseConfig* storage_phase_cfg,
                                                                block::ComputePhaseConfig* compute_phase_cfg,
                                                                block::ActionPhaseConfig* action_phase_cfg) {
-  td::Result<> value;
-  if (!create_transaction_prepare(msg_root, acc, utime, lt, trans_type, storage_phase_cfg, action_phase_cfg, value)) {
-    return value.move_as_error_prefix("cannot prepare transaction");
+  auto prepare_res = create_transaction_prepare(msg_root, acc, utime, lt, trans_type, storage_phase_cfg, action_phase_cfg);
+  if (prepare_res.is_error()) {
+    return prepare_res.move_as_error_prefix("cannot prepare transaction");
   }
 
   if (!trans_->prepare_debug_compute_phase(*compute_phase_cfg)) {
