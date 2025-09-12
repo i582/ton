@@ -404,6 +404,9 @@ int SmartContract::setup_vm(td::Ref<vm::Stack> stack, td::Ref<vm::Tuple> c7, vm:
                             std::shared_ptr<const block::Config> config) {
   logger.clear();
   vm = init_vm(get_state(), stack, c7, gas, ignore_chksig, libraries, vm_log_verbosity, debug_enabled, config, &logger);
+  if (vm.get_code().is_null() || stack.is_null()) {
+    return static_cast<int>(vm::Excno::fatal);  // no ~ for unhandled exceptions
+  }
   return 0;
 }
 

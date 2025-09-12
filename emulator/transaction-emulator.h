@@ -80,6 +80,7 @@ public:
   }
 
   const vm::VmState& get_vm() const {
+    assert(trans_ != nullptr && "getters must not be called before prepare_emulate_transaction_debug()");
     return trans_->vm;
   }
 

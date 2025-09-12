@@ -1758,6 +1758,10 @@ bool Transaction::prepare_debug_compute_phase(const ComputePhaseConfig& cfg) {
     return true;
   }
 
+  if (res.precompiled_impl) {
+    return run_precompiled_contract(cfg, *res.precompiled_impl);
+  }
+
   return true;
 }
 
