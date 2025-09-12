@@ -1763,7 +1763,7 @@ bool Transaction::prepare_debug_compute_phase(const ComputePhaseConfig& cfg, std
     return run_precompiled_contract(cfg, *res.precompiled_impl);
   }
 
-  *vm = std::move(res.vm);
+  vm = std::make_unique<vm::VmState>(std::move(res.vm));
   logger = std::move(res.logger);
   return true;
 }
