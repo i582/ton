@@ -99,7 +99,7 @@ td::Result<std::unique_ptr<TransactionEmulator::EmulationResult>> TransactionEmu
     }
 
     double start_time = td::Time::now();
-    auto res = create_transaction(msg_root, &account, utime, lt, trans_type);
+    auto res = run_transaction(msg_root, &account, utime, lt, trans_type);
     double elapsed = td::Time::now() - start_time;
 
     if(res.is_error()) {
@@ -119,7 +119,7 @@ td::Result<bool> TransactionEmulator::prepare_emulate_transaction_debug(
       return prepare_res.move_as_error_prefix("cannot prepare emulation");
     }
 
-    auto res = create_transaction_debug(msg_root, &account_, utime, lt, trans_type);
+    auto res = run_transaction_debug(msg_root, &account_, utime, lt, trans_type);
     if (res.is_error()) {
       return res.move_as_error_prefix("cannot run message on account ");
     }
@@ -269,7 +269,7 @@ td::Result<> TransactionEmulator::prepare_transaction(
   return td::Unit{};
 }
 
-td::Result<> TransactionEmulator::create_transaction(td::Ref<vm::Cell> msg_root, block::Account* acc,
+td::Result<> TransactionEmulator::run_transaction(td::Ref<vm::Cell> msg_root, block::Account* acc,
                                                      ton::UnixTime utime, ton::LogicalTime lt, int trans_type) {
   auto prepare_res = prepare_transaction(msg_root, acc, utime, lt, trans_type);
   if (prepare_res.is_error()) {
@@ -300,7 +300,7 @@ td::Result<> TransactionEmulator::create_transaction(td::Ref<vm::Cell> msg_root,
   return td::Unit{};
 }
 
-td::Result<bool> TransactionEmulator::create_transaction_debug(td::Ref<vm::Cell> msg_root, block::Account* acc,
+td::Result<bool> TransactionEmulator::run_transaction_debug(td::Ref<vm::Cell> msg_root, block::Account* acc,
                                                                ton::UnixTime utime, ton::LogicalTime lt, int trans_type) {
   auto prepare_res = prepare_transaction(msg_root, acc, utime, lt, trans_type);
   if (prepare_res.is_error()) {

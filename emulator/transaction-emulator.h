@@ -114,11 +114,11 @@ private:
   td::Result<> prepare_transaction(td::Ref<vm::Cell> msg_root, block::Account* acc, ton::UnixTime utime,
                                    ton::LogicalTime lt, int trans_type);
 
- td::Result<> create_transaction(
+ td::Result<> run_transaction(
                                                          td::Ref<vm::Cell> msg_root, block::Account* acc,
                                                          ton::UnixTime utime, ton::LogicalTime lt, int trans_type);
 
-  td::Result<bool> create_transaction_debug(td::Ref<vm::Cell> msg_root, block::Account* acc, ton::UnixTime utime,
+  td::Result<bool> run_transaction_debug(td::Ref<vm::Cell> msg_root, block::Account* acc, ton::UnixTime utime,
                                             ton::LogicalTime lt, int trans_type);
 
   td::Result<bool> transaction_step_debug() const;
