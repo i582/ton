@@ -6,7 +6,6 @@ class TvmEmulator {
   ton::SmartContract smc_;
   ton::SmartContract::Args args_;
 public:
-
   using Answer = ton::SmartContract::Answer;
 
   TvmEmulator(td::Ref<vm::Cell> code, td::Ref<vm::Cell> data): smc_({code, data}) {
