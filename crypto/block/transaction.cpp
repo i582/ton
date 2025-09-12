@@ -1937,8 +1937,15 @@ bool Transaction::run_compute_phase(const ComputePhaseConfig& cfg, ComputePhase&
                                     Ref<vm::Stack>& stack) {
   td::Timer timer;
   cp.exit_code = ~vm.run();
-
   double elapsed = timer.elapsed();
+  const bool compute_phase_result = get_compute_phase_result(cfg, cp, precompiled, gas, stack, elapsed);
+  cp.vm_loaded_cells = vm.extract_loaded_cells();
+  return compute_phase_result;
+}
+
+bool Transaction::get_compute_phase_result(const ComputePhaseConfig& cfg, ComputePhase& cp,
+                                           td::optional<PrecompiledContractsConfig::Contract> precompiled,
+                                           vm::GasLimits& gas, Ref<vm::Stack>& stack, double elapsed) {
   LOG(DEBUG) << "VM terminated with exit code " << cp.exit_code;
   cp.out_of_gas = (cp.exit_code == ~(int)vm::Excno::out_of_gas);
   cp.vm_final_state_hash = vm.get_final_state_hash(cp.exit_code);
@@ -2003,7 +2010,6 @@ bool Transaction::run_compute_phase(const ComputePhaseConfig& cfg, ComputePhase&
                << cfg.flat_gas_limit << "]; remaining balance=" << balance.to_str();
     CHECK(td::sgn(balance.grams) >= 0);
   }
-  cp.vm_loaded_cells = vm.extract_loaded_cells();
   return true;
 }
 
@@ -2015,61 +2021,9 @@ bool Transaction::compute_phase_step_debug(const ComputePhaseConfig& cfg) {
 
   ComputePhase& cp = *(compute_phase.get());
 
-  cp.exit_code = ~(*res);
-
-  LOG(DEBUG) << "VM terminated with exit code " << cp.exit_code;
-  cp.out_of_gas = (cp.exit_code == ~(int)vm::Excno::out_of_gas);
-  cp.vm_final_state_hash = vm.get_final_state_hash(cp.exit_code);
-  Ref<vm::Stack> stack = vm.get_stack_ref();
-  cp.vm_steps = (int) vm.get_steps_count();
-  vm::GasLimits gas = vm.get_gas_limits();
-  cp.gas_used = std::min<long long>(gas.gas_consumed(), gas.gas_limit);
-  cp.accepted = (gas.gas_credit == 0);
-  cp.success = (cp.accepted && vm.committed());
-  if (cp.accepted & use_msg_state) {
-    was_activated = true;
-    acc_status = Account::acc_active;
-  }
-  LOG(INFO) << "steps: " << vm.get_steps_count() << " gas: used=" << gas.gas_consumed() << ", max=" << gas.gas_max
-            << ", limit=" << gas.gas_limit << ", credit=" << gas.gas_credit;
-  LOG(INFO) << "out_of_gas=" << cp.out_of_gas << ", accepted=" << cp.accepted << ", success=" << cp.success;
-  // if (logger != nullptr) { // TODO
-  //   cp.vm_log = logger->get_log();
-  // }
-  if (cp.success) {
-    cp.new_data = vm.get_committed_state().c4;  // c4 -> persistent data
-    cp.actions = vm.get_committed_state().c5;   // c5 -> action list
-    int out_act_num = output_actions_count(cp.actions);
-    if (verbosity > 2) {
-      std::cerr << "new smart contract data: ";
-      bool can_be_special = true;
-      load_cell_slice_special(cp.new_data, can_be_special).print_rec(std::cerr);
-      std::cerr << "output actions: ";
-      block::gen::OutList{out_act_num}.print_ref(std::cerr, cp.actions);
-    }
-  }
-  cp.mode = 0;
-  cp.exit_arg = 0;
-  if (!cp.success && stack->depth() > 0) {
-    td::RefInt256 tos = stack->tos().as_int();
-    if (tos.not_null() && tos->signed_fits_bits(32)) {
-      cp.exit_arg = (int)tos->to_long();
-    }
-  }
-  if (cp.accepted) {
-    if (account.is_special) {
-      cp.gas_fees = td::zero_refint();
-    } else {
-      cp.gas_fees = cfg.compute_gas_price(cp.gas_used);
-      total_fees += cp.gas_fees;
-      balance -= cp.gas_fees;
-    }
-    LOG(DEBUG) << "gas fees: " << cp.gas_fees->to_dec_string() << " = " << cfg.gas_price256->to_dec_string() << " * "
-               << cp.gas_used << " /2^16 ; price=" << cfg.gas_price << "; flat rate=[" << cfg.flat_gas_price << " for "
-               << cfg.flat_gas_limit << "]; remaining balance=" << balance.to_str();
-    CHECK(td::sgn(balance.grams) >= 0);
-  }
-  return true;
+  vm::GasLimits gas;
+  Ref<vm::Stack> stack;
+  return get_compute_phase_result(cfg, cp, {}, gas, stack, 0);
 }
 
 /**

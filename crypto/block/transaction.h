@@ -469,6 +469,9 @@ struct Transaction {
 
   bool execute_compute_phase(const ComputePhaseConfig& cfg);
   bool prepare_debug_compute_phase(const ComputePhaseConfig& cfg);
+  bool get_compute_phase_result(const ComputePhaseConfig& cfg, ComputePhase& cp,
+                                td::optional<PrecompiledContractsConfig::Contract> precompiled, vm::GasLimits& gas,
+                                Ref<vm::Stack>& stack, double elapsed);
 
   struct PrepareComputePhaseResult {
     bool skipped;
