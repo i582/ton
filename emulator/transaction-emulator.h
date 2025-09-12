@@ -21,14 +21,18 @@ class TransactionEmulator {
 
   // Emulation state that persists throughout execution
 
+  /**
+   * Instance of VM used in step by step mode otherwise it is nullptr.
+   */
+  std::unique_ptr<vm::VmState> vm{};
   std::vector<block::StoragePrices> storage_prices_;
   block::StoragePhaseConfig storage_phase_cfg_{&storage_prices_};
-  block::ComputePhaseConfig compute_phase_cfg_;
-  block::ActionPhaseConfig action_phase_cfg_;
-  std::unique_ptr<block::transaction::Transaction> trans_;
-  block::Account account_;
+  block::ComputePhaseConfig compute_phase_cfg_{};
+  block::ActionPhaseConfig action_phase_cfg_{};
+  std::unique_ptr<block::transaction::Transaction> trans_{};
+  block::Account account_{};
   bool external_{false};
-  block::SerializeConfig serialize_config_;
+  block::SerializeConfig serialize_config_{};
 
 public:
   TransactionEmulator(std::shared_ptr<block::Config> config, int vm_log_verbosity = 0) :
@@ -80,8 +84,7 @@ public:
   }
 
   const vm::VmState& get_vm() const {
-    assert(trans_ != nullptr && "getters must not be called before prepare_emulate_transaction_debug()");
-    return trans_->vm;
+    return *vm;
   }
 
   td::Result<> prepare_emulation(block::Account& account, ton::UnixTime& utime, ton::LogicalTime& lt);
@@ -94,7 +97,7 @@ public:
                                                                 double elapsed);
   td::Result<bool> prepare_emulate_transaction_debug(block::Account&& account, td::Ref<vm::Cell> msg_root,
                                                      ton::UnixTime utime, ton::LogicalTime lt, int trans_type);
-  td::Result<bool> debug_step() const;
+  td::Result<bool> debug_step();
   td::Result<std::unique_ptr<EmulationResult>> get_emulation_result();
 
   td::Result<EmulationSuccess> emulate_transaction(block::Account&& account, td::Ref<vm::Cell> original_trans);
@@ -121,6 +124,6 @@ private:
   td::Result<bool> run_transaction_debug(td::Ref<vm::Cell> msg_root, block::Account* acc, ton::UnixTime utime,
                                             ton::LogicalTime lt, int trans_type);
 
-  td::Result<bool> transaction_step_debug() const;
+  td::Result<bool> transaction_step_debug();
 };
 } // namespace emulator

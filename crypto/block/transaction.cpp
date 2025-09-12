@@ -1744,16 +1744,16 @@ bool Transaction::execute_compute_phase(const ComputePhaseConfig& cfg) {
   }
 
   auto& cp = *compute_phase.get();
-  return run_compute_phase(cfg, cp, res.precompiled);
+  return run_compute_phase(cfg, cp, res.vm, res.precompiled);
 }
 
-bool Transaction::prepare_debug_compute_phase(const ComputePhaseConfig& cfg) {
+bool Transaction::prepare_debug_compute_phase(const ComputePhaseConfig& cfg, std::unique_ptr<vm::VmState>& vm) {
   auto maybe_res = prepare_compute_phase(cfg);
   if (!maybe_res) {
     return false;
   }
 
-  const auto res = std::move(*maybe_res);
+  auto res = std::move(*maybe_res);
   if (res.skipped) {
     return true;
   }
@@ -1762,6 +1762,7 @@ bool Transaction::prepare_debug_compute_phase(const ComputePhaseConfig& cfg) {
     return run_precompiled_contract(cfg, *res.precompiled_impl);
   }
 
+  *vm = std::move(res.vm);
   return true;
 }
 
@@ -1924,7 +1925,7 @@ std::optional<Transaction::PrepareComputePhaseResult> Transaction::prepare_compu
       }
     }
   }
-  vm = vm::VmState{new_code, cfg.global_version, std::move(stack), gas, 1, new_data, vm_log, compute_vm_libraries(cfg)};
+  auto vm = vm::VmState{new_code, cfg.global_version, std::move(stack), gas, 1, new_data, vm_log, compute_vm_libraries(cfg)};
   vm.set_max_data_depth(cfg.max_vm_data_depth);
   vm.set_c7(prepare_vm_c7(cfg));  // tuple with SmartContractInfo
   vm.set_chksig_always_succeed(cfg.ignore_chksig);
@@ -1934,20 +1935,20 @@ std::optional<Transaction::PrepareComputePhaseResult> Transaction::prepare_compu
   LOG(DEBUG) << "starting VM";
   cp.vm_init_state_hash = vm.get_state_hash();
 
-  return PrepareComputePhaseResult{false,nullptr, precompiled};
+  return PrepareComputePhaseResult{false, std::move(vm), nullptr, precompiled};
 }
 
-bool Transaction::run_compute_phase(const ComputePhaseConfig& cfg, ComputePhase& cp,
+bool Transaction::run_compute_phase(const ComputePhaseConfig& cfg, ComputePhase& cp, vm::VmState& vm,
                                     td::optional<PrecompiledContractsConfig::Contract> precompiled) {
   td::Timer timer;
   cp.exit_code = ~vm.run();
   double elapsed = timer.elapsed();
-  const bool compute_phase_result = get_compute_phase_result(cfg, cp, precompiled, elapsed);
+  const bool compute_phase_result = get_compute_phase_result(cfg, cp, vm, precompiled, elapsed);
   cp.vm_loaded_cells = vm.extract_loaded_cells();
   return compute_phase_result;
 }
 
-bool Transaction::get_compute_phase_result(const ComputePhaseConfig& cfg, ComputePhase& cp,
+bool Transaction::get_compute_phase_result(const ComputePhaseConfig& cfg, ComputePhase& cp, const vm::VmState& vm,
                                            td::optional<PrecompiledContractsConfig::Contract> precompiled,
                                            double elapsed) {
   LOG(DEBUG) << "VM terminated with exit code " << cp.exit_code;
@@ -2017,8 +2018,8 @@ bool Transaction::get_compute_phase_result(const ComputePhaseConfig& cfg, Comput
   return true;
 }
 
-bool Transaction::compute_phase_step_debug(const ComputePhaseConfig& cfg) {
-  td::optional<int> res = vm.debug_step();
+bool Transaction::compute_phase_step_debug(const ComputePhaseConfig& cfg, std::unique_ptr<vm::VmState>& vm) {
+  td::optional<int> res = vm->debug_step();
   if (!res) {
     return false;
   }
@@ -2026,7 +2027,7 @@ bool Transaction::compute_phase_step_debug(const ComputePhaseConfig& cfg) {
   ComputePhase& cp = *(compute_phase.get());
   cp.exit_code = ~(*res);
 
-  return get_compute_phase_result(cfg, cp, {}, 0);
+  return get_compute_phase_result(cfg, cp, *vm, {}, 0);
 }
 
 /**

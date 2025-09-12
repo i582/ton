@@ -307,15 +307,15 @@ td::Result<bool> TransactionEmulator::run_transaction_debug(td::Ref<vm::Cell> ms
     return prepare_res.move_as_error_prefix("cannot prepare transaction");
   }
 
-  if (!trans_->prepare_debug_compute_phase(compute_phase_cfg_)) {
+  if (!trans_->prepare_debug_compute_phase(compute_phase_cfg_, vm)) {
     return td::Status::Error(-669,"cannot create compute phase of a new transaction for smart contract "s + acc->addr.to_hex());
   }
 
   return true;
 }
 
-td::Result<bool> TransactionEmulator::transaction_step_debug() const {
-  if (!trans_->compute_phase_step_debug(compute_phase_cfg_)) {
+td::Result<bool> TransactionEmulator::transaction_step_debug() {
+  if (!trans_->compute_phase_step_debug(compute_phase_cfg_, vm)) {
     return false;
   }
 
@@ -343,7 +343,7 @@ td::Result<std::unique_ptr<TransactionEmulator::EmulationResult>> TransactionEmu
   return finish_emulation(std::move(account_), serialize_config_, 0);
 }
 
-td::Result<bool> TransactionEmulator::debug_step() const {
+td::Result<bool> TransactionEmulator::debug_step() {
   auto res = transaction_step_debug();
   if (res.is_error()) {
     return res.move_as_error_prefix("cannot run message on account ");
