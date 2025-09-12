@@ -8,12 +8,11 @@ using td::Ref;
 using namespace std::string_literals;
 
 namespace emulator {
-bool TransactionEmulator::prepare_emulation(block::Account& account, ton::UnixTime& utime, ton::LogicalTime& lt,
-                                            block::StoragePhaseConfig& storage_phase_cfg,
-                                            block::ComputePhaseConfig& compute_phase_cfg,
-                                            block::ActionPhaseConfig& action_phase_cfg,
-                                            block::SerializeConfig& serialize_config,
-                                            td::Result<std::unique_ptr<TransactionEmulator::EmulationResult>>& value) {
+td::Result<std::unique_ptr<TransactionEmulator::EmulationResult>> TransactionEmulator::prepare_emulation(block::Account& account, ton::UnixTime& utime, ton::LogicalTime& lt,
+                                                                                                         block::StoragePhaseConfig& storage_phase_cfg,
+                                                                                                         block::ComputePhaseConfig& compute_phase_cfg,
+                                                                                                         block::ActionPhaseConfig& action_phase_cfg,
+                                                                                                         block::SerializeConfig& serialize_config) {
   td::Ref<vm::Cell> old_mparams;
   storage_phase_cfg = {&storage_prices_};
   td::RefInt256 masterchain_create_fee, basechain_create_fee;
@@ -29,14 +28,12 @@ bool TransactionEmulator::prepare_emulation(block::Account& account, ton::UnixTi
       *config_, prev_blocks_info_, &old_mparams, &storage_prices_, &storage_phase_cfg, &rand_seed_, &compute_phase_cfg,
       &action_phase_cfg, &serialize_config, &masterchain_create_fee, &basechain_create_fee, account.workchain, utime);
   if (fetch_res.is_error()) {
-    value = fetch_res.move_as_error_prefix("cannot fetch config params ");
-    return false;
+    return fetch_res.move_as_error_prefix("cannot fetch config params ");
   }
 
   auto res = vm::init_vm(debug_enabled_);
   if (res.is_error()) {
-    value = res.move_as_error();
-    return false;
+    return res.move_as_error();
   }
 
   if (!lt) {
@@ -52,7 +49,7 @@ bool TransactionEmulator::prepare_emulation(block::Account& account, ton::UnixTi
   compute_phase_cfg.ignore_chksig = ignore_chksig_;
   compute_phase_cfg.with_vm_log = true;
   compute_phase_cfg.vm_log_verbosity = vm_log_verbosity_;
-  return true;
+  return {};
 }
 
 td::Result<std::unique_ptr<TransactionEmulator::EmulationResult>> TransactionEmulator::finish_emulation(
@@ -86,10 +83,9 @@ td::Result<std::unique_ptr<TransactionEmulator::EmulationResult>> TransactionEmu
     block::ComputePhaseConfig compute_phase_cfg;
     block::ActionPhaseConfig action_phase_cfg;
     block::SerializeConfig serialize_config;
-    td::Result<std::unique_ptr<EmulationResult>> value;
-    if (!prepare_emulation(account, utime, lt, storage_phase_cfg, compute_phase_cfg, action_phase_cfg, serialize_config,
-                          value)) {
-      return value.move_as_error_prefix("cannot prepare emulation");
+    auto prepare_res = prepare_emulation(account, utime, lt, storage_phase_cfg, compute_phase_cfg, action_phase_cfg, serialize_config);
+    if (prepare_res.is_error()) {
+      return prepare_res.move_as_error_prefix("cannot prepare emulation");
     }
 
     double start_time = td::Time::now();
@@ -110,10 +106,9 @@ td::Result<bool> TransactionEmulator::prepare_emulate_transaction_debug(
 
     account_ = std::move(account);
 
-    td::Result<std::unique_ptr<EmulationResult>> value;
-    if (!prepare_emulation(account_, utime, lt, storage_phase_cfg_, compute_phase_cfg_, action_phase_cfg_,
-                          serialize_config_, value)) {
-      return value.move_as_error_prefix("cannot prepare emulation");
+    auto prepare_res = prepare_emulation(account, utime, lt, storage_phase_cfg_, compute_phase_cfg_, action_phase_cfg_, serialize_config_);
+    if (prepare_res.is_error()) {
+      return prepare_res.move_as_error_prefix("cannot prepare emulation");
     }
 
     auto res = create_transaction_debug(msg_root, &account_, utime, lt, trans_type,
