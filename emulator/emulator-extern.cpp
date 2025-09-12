@@ -796,7 +796,7 @@ const char *tvm_emulator_sbs_run_get_method(void *tvm_emulator, int method_id, c
 
   const auto emulator = static_cast<emulator::TvmEmulator *>(tvm_emulator);
   const auto result = emulator->run_get_method_debug(method_id, stack);
-  if (!result) {
+  if (result != 0) {
     return nullptr;
   }
 
