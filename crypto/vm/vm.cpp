@@ -472,8 +472,6 @@ td::optional<int> VmState::debug_step() {
       restore_parent_vm(~exit_code);
     }
     int res_inner = run_step();
-    exit_code = res_inner;
-
     if (!res_inner) {
       return {};
     }
@@ -588,6 +586,7 @@ int VmState::run() {
         ss << "\n";
         VM_LOG(this) << ss.str();
       }
+      exit_code = res;
       return res;
     }
     restore_parent = true;
