@@ -534,8 +534,8 @@ int VmState::run_step() {
 
   exit_code = res;
 
-  if (!res) {
-    // res will be false if there are no more instructions to run
+  if (res) {
+    // res will be non-zero if there are no more instructions to run
     if ((res | 1) == -1 && !try_commit()) {
       VM_LOG(this) << "automatic commit failed (new data or action cells too deep)";
       get_stack().clear();
