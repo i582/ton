@@ -29,14 +29,14 @@ class TransactionEmulator {
    * Logger used in step by step mode, otherwise it is nullptr.
    */
   std::unique_ptr<block::StringLoggerTail> logger{};
-  std::vector<block::StoragePrices> storage_prices_;
-  block::StoragePhaseConfig storage_phase_cfg_{&storage_prices_};
-  block::ComputePhaseConfig compute_phase_cfg_{};
-  block::ActionPhaseConfig action_phase_cfg_{};
-  std::unique_ptr<block::transaction::Transaction> trans_{};
+  std::vector<block::StoragePrices> storage_prices;
+  block::StoragePhaseConfig storage_phase_cfg{&storage_prices};
+  block::ComputePhaseConfig compute_phase_cfg{};
+  block::ActionPhaseConfig action_phase_cfg{};
+  std::unique_ptr<block::transaction::Transaction> trans{};
   block::Account account_{};
-  bool external_{false};
-  block::SerializeConfig serialize_config_{};
+  bool external{false};
+  block::SerializeConfig serialize_config{};
 
 public:
   TransactionEmulator(std::shared_ptr<block::Config> config, int vm_log_verbosity = 0) :
@@ -97,7 +97,6 @@ public:
                                                                    ton::UnixTime utime, ton::LogicalTime lt,
                                                                    int trans_type);
   td::Result<std::unique_ptr<EmulationResult>> finish_emulation(block::Account&& account,
-                                                                block::SerializeConfig serialize_config,
                                                                 double elapsed);
   td::Result<bool> prepare_emulate_transaction_debug(block::Account&& account, td::Ref<vm::Cell> msg_root,
                                                      ton::UnixTime utime, ton::LogicalTime lt, int trans_type);

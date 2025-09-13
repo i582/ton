@@ -20,8 +20,8 @@ td::Result<> TransactionEmulator::prepare_emulation(block::Account& account, ton
   }
 
   auto fetch_res = block::FetchConfigParams::fetch_config_params(
-      *config_, prev_blocks_info_, &old_mparams, &storage_prices_, &storage_phase_cfg_, &rand_seed_, &compute_phase_cfg_,
-      &action_phase_cfg_, &serialize_config_, &masterchain_create_fee, &basechain_create_fee, account.workchain, utime);
+      *config_, prev_blocks_info_, &old_mparams, &storage_prices, &storage_phase_cfg, &rand_seed_, &compute_phase_cfg,
+      &action_phase_cfg, &serialize_config, &masterchain_create_fee, &basechain_create_fee, account.workchain, utime);
   if (fetch_res.is_error()) {
     return fetch_res.move_as_error_prefix("cannot fetch config params ");
   }
@@ -40,39 +40,39 @@ td::Result<> TransactionEmulator::prepare_emulation(block::Account& account, ton
   }
   account.block_lt = lt - lt % block::ConfigInfo::get_lt_align();
 
-  compute_phase_cfg_.libraries = std::make_unique<vm::Dictionary>(libraries_);
-  compute_phase_cfg_.ignore_chksig = ignore_chksig_;
-  compute_phase_cfg_.with_vm_log = true;
-  compute_phase_cfg_.vm_log_verbosity = vm_log_verbosity_;
+  compute_phase_cfg.libraries = std::make_unique<vm::Dictionary>(libraries_);
+  compute_phase_cfg.ignore_chksig = ignore_chksig_;
+  compute_phase_cfg.with_vm_log = true;
+  compute_phase_cfg.vm_log_verbosity = vm_log_verbosity_;
   return td::Unit{};
 }
 
 td::Result<std::unique_ptr<TransactionEmulator::EmulationResult>> TransactionEmulator::finish_emulation(
-    block::Account&& account, block::SerializeConfig serialize_config, double elapsed) {
-  if (!trans_->compute_phase->accepted && trans_->in_msg_extern) {
-    auto vm_log = trans_->compute_phase->vm_log;
-    auto vm_exit_code = trans_->compute_phase->exit_code;
+    block::Account&& account, double elapsed) {
+  if (!trans->compute_phase->accepted && trans->in_msg_extern) {
+    auto vm_log = trans->compute_phase->vm_log;
+    auto vm_exit_code = trans->compute_phase->exit_code;
     cleanup_shared_state();
     return std::make_unique<TransactionEmulator::EmulationExternalNotAccepted>(std::move(vm_log), vm_exit_code,
                                                                                elapsed);
   }
 
-  if (!trans_->serialize(serialize_config)) {
+  if (!trans->serialize(serialize_config)) {
     auto error = td::Status::Error(
-        -669, "cannot serialize new transaction for smart contract "s + trans_->account.addr.to_hex());
+        -669, "cannot serialize new transaction for smart contract "s + trans->account.addr.to_hex());
     cleanup_shared_state();
     return error;
   }
 
-  auto trans_root = trans_->commit(account);
+  auto trans_root = trans->commit(account);
   if (trans_root.is_null()) {
     cleanup_shared_state();
     return td::Status::Error(PSLICE() << "cannot commit new transaction for smart contract");
   }
 
   auto result = std::make_unique<TransactionEmulator::EmulationSuccess>(
-      std::move(trans_root), std::move(account), std::move(trans_->compute_phase->vm_log),
-      std::move(trans_->compute_phase->actions), elapsed);
+      std::move(trans_root), std::move(account), std::move(trans->compute_phase->vm_log),
+      std::move(trans->compute_phase->actions), elapsed);
 
   // Since emulator can be used many times, cleanup all shared state for clean emulation of the next transaction
   cleanup_shared_state();
@@ -82,14 +82,14 @@ td::Result<std::unique_ptr<TransactionEmulator::EmulationResult>> TransactionEmu
 void TransactionEmulator::cleanup_shared_state() {
   vm = nullptr;
   logger = {};
-  storage_prices_ = {};
-  storage_phase_cfg_ = {&storage_prices_};
-  compute_phase_cfg_ = {};
-  action_phase_cfg_ = {};
-  trans_ = nullptr;
+  storage_prices = {};
+  storage_phase_cfg = {&storage_prices};
+  compute_phase_cfg = {};
+  action_phase_cfg = {};
+  trans = nullptr;
   account_ = {};
-  external_ = false;
-  serialize_config_ = {};
+  external = false;
+  serialize_config = {};
 }
 
 td::Result<std::unique_ptr<TransactionEmulator::EmulationResult>> TransactionEmulator::emulate_transaction(
@@ -108,7 +108,7 @@ td::Result<std::unique_ptr<TransactionEmulator::EmulationResult>> TransactionEmu
       return res.move_as_error_prefix("cannot run message on account ");
     }
 
-    return finish_emulation(std::move(account), serialize_config_, elapsed);
+    return finish_emulation(std::move(account), elapsed);
 }
 
 td::Result<bool> TransactionEmulator::prepare_emulate_transaction_debug(
@@ -228,24 +228,24 @@ bool TransactionEmulator::check_state_update(const block::Account& account, cons
 
 td::Result<> TransactionEmulator::prepare_transaction(
     td::Ref<vm::Cell> msg_root, block::Account* acc, ton::UnixTime utime, ton::LogicalTime lt, int trans_type) {
-  external_ = false;
+  external = false;
   bool ihr_delivered{false}, need_credit_phase{false};
 
   if (msg_root.not_null()) {
     auto cs = vm::load_cell_slice(msg_root);
-    external_ = block::gen::t_CommonMsgInfo.get_tag(cs);
+    external = block::gen::t_CommonMsgInfo.get_tag(cs);
   }
 
   if (trans_type == block::transaction::Transaction::tr_ord) {
-    need_credit_phase = !external_;
+    need_credit_phase = !external;
   } else if (trans_type == block::transaction::Transaction::tr_merge_install) {
     need_credit_phase = true;
   }
 
-  trans_ = std::make_unique<block::transaction::Transaction>(*acc, trans_type, lt, utime, msg_root);
+  trans = std::make_unique<block::transaction::Transaction>(*acc, trans_type, lt, utime, msg_root);
 
-  if (msg_root.not_null() && !trans_->unpack_input_msg(ihr_delivered, &action_phase_cfg_)) {
-    if (external_) {
+  if (msg_root.not_null() && !trans->unpack_input_msg(ihr_delivered, &action_phase_cfg)) {
+    if (external) {
       // inbound external message was not accepted
       return td::Status::Error(-701,"inbound external message rejected by account "s + acc->addr.to_hex() +
                                                            " before smart-contract execution");
@@ -253,49 +253,49 @@ td::Result<> TransactionEmulator::prepare_transaction(
     return td::Status::Error(-669,"cannot unpack input message for a new transaction");
   }
 
-  if (trans_->bounce_enabled) {
-    if (!trans_->prepare_storage_phase(storage_phase_cfg_, true)) {
+  if (trans->bounce_enabled) {
+    if (!trans->prepare_storage_phase(storage_phase_cfg, true)) {
       return td::Status::Error(-669,"cannot create storage phase of a new transaction for smart contract "s + acc->addr.to_hex());
     }
-    if (need_credit_phase && !trans_->prepare_credit_phase()) {
+    if (need_credit_phase && !trans->prepare_credit_phase()) {
       return td::Status::Error(-669,"cannot create credit phase of a new transaction for smart contract "s + acc->addr.to_hex());
     }
   } else {
-    if (need_credit_phase && !trans_->prepare_credit_phase()) {
+    if (need_credit_phase && !trans->prepare_credit_phase()) {
       return td::Status::Error(-669,"cannot create credit phase of a new transaction for smart contract "s + acc->addr.to_hex());
     }
-    if (!trans_->prepare_storage_phase(storage_phase_cfg_, true, need_credit_phase)) {
+    if (!trans->prepare_storage_phase(storage_phase_cfg, true, need_credit_phase)) {
       return td::Status::Error(-669,"cannot create storage phase of a new transaction for smart contract "s + acc->addr.to_hex());
     }
   }
   return td::Unit{};
 }
 
-td::Result<> TransactionEmulator::run_transaction(td::Ref<vm::Cell> msg_root, block::Account* acc,
-                                                     ton::UnixTime utime, ton::LogicalTime lt, int trans_type) {
+td::Result<> TransactionEmulator::run_transaction(td::Ref<vm::Cell> msg_root, block::Account* acc, ton::UnixTime utime,
+                                                  ton::LogicalTime lt, int trans_type) {
   auto prepare_res = prepare_transaction(msg_root, acc, utime, lt, trans_type);
   if (prepare_res.is_error()) {
     return prepare_res.move_as_error_prefix("cannot prepare transaction");
   }
 
-  if (!trans_->execute_compute_phase(compute_phase_cfg_)) {
+  if (!trans->execute_compute_phase(compute_phase_cfg)) {
     return td::Status::Error(-669,"cannot create compute phase of a new transaction for smart contract "s + acc->addr.to_hex());
   }
 
-  if (!trans_->compute_phase->accepted) {
-    if (!external_ && trans_->compute_phase->skip_reason == block::ComputePhase::sk_none) {
+  if (!trans->compute_phase->accepted) {
+    if (!external && trans->compute_phase->skip_reason == block::ComputePhase::sk_none) {
       return td::Status::Error(-669,"new ordinary transaction for smart contract "s + acc->addr.to_hex() +
                 " has not been accepted by the smart contract (?)");
     }
   }
 
-  if (trans_->compute_phase->success && !trans_->prepare_action_phase(action_phase_cfg_)) {
+  if (trans->compute_phase->success && !trans->prepare_action_phase(action_phase_cfg)) {
     return td::Status::Error(-669,"cannot create action phase of a new transaction for smart contract "s + acc->addr.to_hex());
   }
 
-  if (trans_->bounce_enabled
-  && (!trans_->compute_phase->success || trans_->action_phase->state_exceeds_limits || trans_->action_phase->bounce)
-  && !trans_->prepare_bounce_phase(action_phase_cfg_)) {
+  if (trans->bounce_enabled
+  && (!trans->compute_phase->success || trans->action_phase->state_exceeds_limits || trans->action_phase->bounce)
+  && !trans->prepare_bounce_phase(action_phase_cfg)) {
     return td::Status::Error(-669,"cannot create bounce phase of a new transaction for smart contract "s + acc->addr.to_hex());
   }
 
@@ -309,7 +309,7 @@ td::Result<bool> TransactionEmulator::run_transaction_debug(td::Ref<vm::Cell> ms
     return prepare_res.move_as_error_prefix("cannot prepare transaction");
   }
 
-  if (!trans_->prepare_debug_compute_phase(compute_phase_cfg_, vm, logger)) {
+  if (!trans->prepare_debug_compute_phase(compute_phase_cfg, vm, logger)) {
     return td::Status::Error(-669,"cannot create compute phase of a new transaction for smart contract "s + acc->addr.to_hex());
   }
 
@@ -317,24 +317,24 @@ td::Result<bool> TransactionEmulator::run_transaction_debug(td::Ref<vm::Cell> ms
 }
 
 td::Result<bool> TransactionEmulator::transaction_step_debug() {
-  if (!trans_->compute_phase_step_debug(compute_phase_cfg_, vm, logger)) {
+  if (!trans->compute_phase_step_debug(compute_phase_cfg, vm, logger)) {
     return false;
   }
 
-  if (!trans_->compute_phase->accepted) {
-    if (!external_ && trans_->compute_phase->skip_reason == block::ComputePhase::sk_none) {
+  if (!trans->compute_phase->accepted) {
+    if (!external && trans->compute_phase->skip_reason == block::ComputePhase::sk_none) {
       return td::Status::Error(-669,"new ordinary transaction for smart contract "s + account_.addr.to_hex() +
                 " has not been accepted by the smart contract (?)");
     }
   }
 
-  if (trans_->compute_phase->success && !trans_->prepare_action_phase(action_phase_cfg_)) {
+  if (trans->compute_phase->success && !trans->prepare_action_phase(action_phase_cfg)) {
     return td::Status::Error(-669,"cannot create action phase of a new transaction for smart contract "s + account_.addr.to_hex());
   }
 
-  if (trans_->bounce_enabled
-  && (!trans_->compute_phase->success || trans_->action_phase->state_exceeds_limits || trans_->action_phase->bounce)
-  && !trans_->prepare_bounce_phase(action_phase_cfg_)) {
+  if (trans->bounce_enabled
+  && (!trans->compute_phase->success || trans->action_phase->state_exceeds_limits || trans->action_phase->bounce)
+  && !trans->prepare_bounce_phase(action_phase_cfg)) {
     return td::Status::Error(-669,"cannot create bounce phase of a new transaction for smart contract "s + account_.addr.to_hex());
   }
 
@@ -342,7 +342,7 @@ td::Result<bool> TransactionEmulator::transaction_step_debug() {
 }
 
 td::Result<std::unique_ptr<TransactionEmulator::EmulationResult>> TransactionEmulator::get_emulation_result() {
-  return finish_emulation(std::move(account_), serialize_config_, 0);
+  return finish_emulation(std::move(account_), 0);
 }
 
 td::Result<bool> TransactionEmulator::debug_step() {
