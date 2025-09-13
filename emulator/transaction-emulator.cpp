@@ -9,42 +9,42 @@ using namespace std::string_literals;
 
 namespace emulator {
 td::Result<> TransactionEmulator::prepare_emulation(block::Account& account, ton::UnixTime& utime, ton::LogicalTime& lt) {
-  td::Ref<vm::Cell> old_mparams;
-  td::RefInt256 masterchain_create_fee, basechain_create_fee;
+    td::Ref<vm::Cell> old_mparams;
+    td::RefInt256 masterchain_create_fee, basechain_create_fee;
 
-  if (!utime) {
-    utime = unixtime_;
-  }
-  if (!utime) {
-    utime = (unsigned)std::time(nullptr);
-  }
+    if (!utime) {
+      utime = unixtime_;
+    }
+    if (!utime) {
+      utime = (unsigned)std::time(nullptr);
+    }
 
-  auto fetch_res = block::FetchConfigParams::fetch_config_params(
-      *config_, prev_blocks_info_, &old_mparams, &storage_prices, &storage_phase_cfg, &rand_seed_, &compute_phase_cfg,
-      &action_phase_cfg, &serialize_config, &masterchain_create_fee, &basechain_create_fee, account.workchain, utime);
-  if(fetch_res.is_error()) {
-    return fetch_res.move_as_error_prefix("cannot fetch config params ");
-  }
+    auto fetch_res = block::FetchConfigParams::fetch_config_params(
+        *config_, prev_blocks_info_, &old_mparams, &storage_prices, &storage_phase_cfg, &rand_seed_, &compute_phase_cfg,
+        &action_phase_cfg, &serialize_config, &masterchain_create_fee, &basechain_create_fee, account.workchain, utime);
+    if(fetch_res.is_error()) {
+      return fetch_res.move_as_error_prefix("cannot fetch config params ");
+    }
 
-  auto res = vm::init_vm(debug_enabled_);
-  if (res.is_error()) {
-    return res.move_as_error();
-  }
+    auto res = vm::init_vm(debug_enabled_);
+    if (res.is_error()) {
+      return res.move_as_error();
+    }
 
-  if (!lt) {
-    lt = lt_;
-  }
-  if (!lt) {
-    lt = (account.last_trans_lt_ / block::ConfigInfo::get_lt_align() + 1) *
-         block::ConfigInfo::get_lt_align();  // next block after account_.last_trans_lt_
-  }
-  account.block_lt = lt - lt % block::ConfigInfo::get_lt_align();
+    if (!lt) {
+      lt = lt_;
+    }
+    if (!lt) {
+      lt = (account.last_trans_lt_ / block::ConfigInfo::get_lt_align() + 1) *
+           block::ConfigInfo::get_lt_align();  // next block after account_.last_trans_lt_
+    }
+    account.block_lt = lt - lt % block::ConfigInfo::get_lt_align();
 
-  compute_phase_cfg.libraries = std::make_unique<vm::Dictionary>(libraries_);
-  compute_phase_cfg.ignore_chksig = ignore_chksig_;
-  compute_phase_cfg.with_vm_log = true;
-  compute_phase_cfg.vm_log_verbosity = vm_log_verbosity_;
-  return td::Unit{};
+    compute_phase_cfg.libraries = std::make_unique<vm::Dictionary>(libraries_);
+    compute_phase_cfg.ignore_chksig = ignore_chksig_;
+    compute_phase_cfg.with_vm_log = true;
+    compute_phase_cfg.vm_log_verbosity = vm_log_verbosity_;
+    return td::Unit{};
 }
 
 td::Result<std::unique_ptr<TransactionEmulator::EmulationResult>> TransactionEmulator::finish_emulation(
