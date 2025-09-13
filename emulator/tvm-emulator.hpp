@@ -74,7 +74,10 @@ public:
   }
 
   Answer sbs_result() {
-    return smc_.get_result(*vm, *logger);
+    auto result = smc_.get_result(*vm, *logger);
+    vm = nullptr;
+    logger = nullptr;
+    return result;
   }
 
   Answer run_get_method(int method_id, td::Ref<vm::Stack> stack) {
