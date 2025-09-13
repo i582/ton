@@ -181,7 +181,7 @@ class SmartContract : public td::CntObject {
   Answer send_external_message(td::Ref<vm::Cell> cell, Args args = {});
   Answer send_internal_message(td::Ref<vm::Cell> cell, Args args = {});
 
-  int run_get_method_debug(Args args, std::unique_ptr<vm::VmState>& vm, std::unique_ptr<Logger>& logger);
+  int run_get_method_debug(Args args, std::unique_ptr<vm::VmState>& vm, std::unique_ptr<Logger>& logger) const;
   td::optional<Answer> debug_step(std::unique_ptr<vm::VmState>& vm, std::unique_ptr<Logger>& logger);
   Answer get_result(const vm::VmState& vm, const Logger& logger) const;
 
@@ -203,17 +203,5 @@ class SmartContract : public td::CntObject {
 
  protected:
   State state_;
-
- private:
-  static Answer get_vm_result(const vm::VmState& vm, State state, std::string logs);
-  void prepare_get_method_args(Args& args) const;
-
-  Answer run_smartcont(td::Ref<vm::Stack> stack, td::Ref<vm::Tuple> c7, vm::GasLimits gas, bool ignore_chksig,
-                       td::Ref<vm::Cell> libraries, int vm_log_verbosity, bool debug_enabled,
-                       std::shared_ptr<const block::Config> config) const;
-  int setup_vm(td::Ref<vm::Stack> stack, td::Ref<vm::Tuple> c7, vm::GasLimits gas, bool ignore_chksig,
-               td::Ref<vm::Cell> libraries, int vm_log_verbosity, bool debug_enabled,
-               std::shared_ptr<const block::Config> config, std::unique_ptr<vm::VmState>& vm,
-               std::unique_ptr<Logger>& logger) const;
 };
 }  // namespace ton
