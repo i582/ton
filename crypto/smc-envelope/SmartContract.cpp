@@ -285,8 +285,7 @@ SmartContract::Answer SmartContract::run_smartcont(td::Ref<vm::Stack> stack,
   }
 
   Answer res = get_vm_result(vm, get_state(), logger.res);
-  auto mlib = vm.get_missing_library();
-  LOG_IF(ERROR, gas_credit != 0 && (res.accepted && !res.success) && !mlib)
+  LOG_IF(ERROR, gas_credit != 0 && (res.accepted && !res.success) && !res.missing_library)
       << "Accepted but failed with code " << res.code << "\n"
       << res.gas_used << "\n";
   return res;
