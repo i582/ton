@@ -26,10 +26,7 @@ td::Result<> TransactionEmulator::prepare_emulation(block::Account& account, ton
         return fetch_res.move_as_error_prefix("cannot fetch config params ");
     }
 
-    auto res = vm::init_vm(debug_enabled_);
-    if (res.is_error()) {
-      return res.move_as_error();
-    }
+    TRY_STATUS(vm::init_vm(debug_enabled_));
 
     if (!lt) {
       lt = lt_;
