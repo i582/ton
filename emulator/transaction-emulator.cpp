@@ -22,7 +22,7 @@ td::Result<> TransactionEmulator::prepare_emulation(block::Account& account, ton
   auto fetch_res = block::FetchConfigParams::fetch_config_params(
       *config_, prev_blocks_info_, &old_mparams, &storage_prices, &storage_phase_cfg, &rand_seed_, &compute_phase_cfg,
       &action_phase_cfg, &serialize_config, &masterchain_create_fee, &basechain_create_fee, account.workchain, utime);
-  if (fetch_res.is_error()) {
+  if(fetch_res.is_error()) {
     return fetch_res.move_as_error_prefix("cannot fetch config params ");
   }
 
