@@ -32,7 +32,7 @@ td::Result<> TransactionEmulator::prepare_emulation(block::Account& account, ton
       lt = lt_;
     }
     if (!lt) {
-      lt = (account.last_trans_lt_ / block::ConfigInfo::get_lt_align() + 1) * block::ConfigInfo::get_lt_align();  // next block after account_.last_trans_lt_
+      lt = (account.last_trans_lt_ / block::ConfigInfo::get_lt_align() + 1) * block::ConfigInfo::get_lt_align(); // next block after account_.last_trans_lt_
     }
     account.block_lt = lt - lt % block::ConfigInfo::get_lt_align();
 
