@@ -1902,8 +1902,8 @@ std::optional<Transaction::PrepareComputePhaseResult> Transaction::prepare_compu
   // auto log = create_vm_log(error_stream ? &ostream_logger : nullptr);
   LOG(DEBUG) << "creating VM";
 
+  std::unique_ptr<StringLoggerTail> logger;
   auto vm_log = vm::VmLog();
-  std::unique_ptr<StringLoggerTail> logger = nullptr;
   if (cfg.with_vm_log) {
     size_t log_max_size = 256;
     if (cfg.vm_log_verbosity > 4) {
@@ -1928,7 +1928,7 @@ std::optional<Transaction::PrepareComputePhaseResult> Transaction::prepare_compu
       }
     }
   }
-  auto vm = vm::VmState{new_code, cfg.global_version, std::move(stack), gas, 1, new_data, vm_log, compute_vm_libraries(cfg)};
+  vm::VmState vm{new_code, cfg.global_version, std::move(stack), gas, 1, new_data, vm_log, compute_vm_libraries(cfg)};
   vm.set_max_data_depth(cfg.max_vm_data_depth);
   vm.set_c7(prepare_vm_c7(cfg));  // tuple with SmartContractInfo
   vm.set_chksig_always_succeed(cfg.ignore_chksig);
