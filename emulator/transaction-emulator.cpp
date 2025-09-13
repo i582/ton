@@ -23,7 +23,7 @@ td::Result<> TransactionEmulator::prepare_emulation(block::Account& account, ton
         *config_, prev_blocks_info_, &old_mparams, &storage_prices, &storage_phase_cfg, &rand_seed_, &compute_phase_cfg,
         &action_phase_cfg, &serialize_config, &masterchain_create_fee, &basechain_create_fee, account.workchain, utime);
     if(fetch_res.is_error()) {
-      return fetch_res.move_as_error_prefix("cannot fetch config params ");
+        return fetch_res.move_as_error_prefix("cannot fetch config params ");
     }
 
     auto res = vm::init_vm(debug_enabled_);
@@ -35,8 +35,7 @@ td::Result<> TransactionEmulator::prepare_emulation(block::Account& account, ton
       lt = lt_;
     }
     if (!lt) {
-      lt = (account.last_trans_lt_ / block::ConfigInfo::get_lt_align() + 1) *
-           block::ConfigInfo::get_lt_align();  // next block after account_.last_trans_lt_
+      lt = (account.last_trans_lt_ / block::ConfigInfo::get_lt_align() + 1) * block::ConfigInfo::get_lt_align();  // next block after account_.last_trans_lt_
     }
     account.block_lt = lt - lt % block::ConfigInfo::get_lt_align();
 
