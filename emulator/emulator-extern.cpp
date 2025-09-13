@@ -236,7 +236,7 @@ const char *transaction_emulator_sbs_emulate_transaction(void *transaction_emula
   ton::UnixTime now;
   if (const auto error = transaction_emulator_emulate_transaction_prepare(shard_account_boc, message_boc, emulator,
                                                                           message_cell, account, now)) {
-    return error;
+    ERROR_RESPONSE(PSTRING() << "Emulate transaction failed: " << error);
   }
 
   auto result = emulator->prepare_emulate_transaction_debug(std::move(account), message_cell, now, 0, block::transaction::Transaction::tr_ord);
@@ -795,7 +795,7 @@ const char *tvm_emulator_run_get_method_prepare(const char *stack_boc, td::Ref<v
 const char *tvm_emulator_sbs_run_get_method(void *tvm_emulator, int method_id, const char *stack_boc) {
   td::Ref<vm::Stack> stack;
   if (const char *error = tvm_emulator_run_get_method_prepare(stack_boc, stack); error != nullptr) {
-    return error;
+    ERROR_RESPONSE(PSTRING() << "Couldn't prepare get method run: " << error);
   }
 
   const auto emulator = static_cast<emulator::TvmEmulator *>(tvm_emulator);
@@ -804,7 +804,11 @@ const char *tvm_emulator_sbs_run_get_method(void *tvm_emulator, int method_id, c
     ERROR_RESPONSE(PSTRING() << "Couldn't prepare get method run");
   }
 
-  return nullptr;
+  td::JsonBuilder jb;
+  auto json_obj = jb.enter_object();
+  json_obj("success", td::JsonTrue());
+  json_obj.leave();
+  return strdup(jb.string_builder().as_cslice().c_str());
 }
 
 const char *tvm_emulator_get_method_result(emulator::TvmEmulator::Answer result) {
