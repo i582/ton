@@ -106,7 +106,7 @@ struct CompilerState {
   std::vector<StructPtr> all_structs;
   AllRegisteredSrcFiles all_src_files;
 
-  std::vector<DebugInfo> debug_infos;
+  std::vector<SourceMapEntry> source_map;
 
   bool is_verbosity(int gt_eq) const { return settings.verbosity >= gt_eq; }
 };

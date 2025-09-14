@@ -721,6 +721,7 @@ static std::vector<var_idx_t> gen_compile_time_code_instead_of_fun_call(CodeBlob
 
 std::vector<var_idx_t> gen_inline_fun_call_in_place(CodeBlob& code, TypePtr ret_type, SrcLocation loc, FunctionPtr f_inlined, AnyExprV self_obj, bool is_before_immediate_return, const std::vector<std::vector<var_idx_t>>& vars_per_arg) {
   insert_debug_info_inner(loc, ast_function_call, code);
+  G.source_map.at(G.source_map.size() - 1).before_inlined_function_call = true;
 
   tolk_assert(vars_per_arg.size() == f_inlined->parameters.size());
   for (int i = 0; i < f_inlined->get_num_params(); ++i) {
@@ -769,6 +770,9 @@ std::vector<var_idx_t> gen_inline_fun_call_in_place(CodeBlob& code, TypePtr ret_
 
   ClearStateAfterInlineInPlace visitor;
   visitor.start_visiting_function(f_inlined, v_ast_root);
+
+  insert_debug_info_inner(loc, ast_function_call, code);
+  G.source_map.at(G.source_map.size() - 1).after_inlined_function_call = true;
 
   code.fun_ref = backup_cur_fun;
   code.inline_rvect_out = backup_outer_inline;
@@ -1282,7 +1286,7 @@ static std::vector<var_idx_t> process_binary_operator(V<ast_binary_operator> v, 
   TokenType t = v->tok;
 
   if (v->fun_ref) {   // almost all operators, fun_ref was assigned at type inferring
-    insert_debug_info_inner(v->loc, ast_binary_operator, code);
+    // insert_debug_info_inner(v->loc, ast_binary_operator, code);
     std::vector<var_idx_t> args_vars = pre_compile_tensor(code, {v->get_lhs(), v->get_rhs()});
     std::vector<var_idx_t> rvect = gen_op_call(code, v->inferred_type, v->loc, std::move(args_vars), v->fun_ref, "(binary-op)");
     return transition_to_target_type(std::move(rvect), code, target_type, v);
@@ -1926,6 +1930,7 @@ static std::vector<var_idx_t> process_object_literal(V<ast_object_literal> v, Co
 }
 
 static std::vector<var_idx_t> process_int_const(V<ast_int_const> v, CodeBlob& code, TypePtr target_type) {
+  insert_debug_info(v, code);
   std::vector<var_idx_t> rvect = code.create_tmp_var(v->inferred_type, v->loc, "(int-const)");
   code.emplace_back(v->loc, Op::_IntConst, rvect, v->intval);
   // here, like everywhere, even for just `int`, there might be a potential transition due to union types
@@ -2327,7 +2332,8 @@ static void process_return_statement(V<ast_return_statement> v, CodeBlob& code) 
     return_vars.insert(return_vars.begin(), mutated_vars.begin(), mutated_vars.end());
   }
 
-  insert_debug_info_inner(v->loc, ast_return_statement, code);
+  // Point to the next line after return
+  insert_debug_info_inner(v->loc, ast_return_statement, code, 1);
 
   // if fun_ref is called and inlined into a parent, assign a result instead of generating a return statement
   if (code.inline_rvect_out) {

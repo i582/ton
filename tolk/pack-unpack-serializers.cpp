@@ -725,7 +725,7 @@ struct S_Either final : ISerializer {
       }
     }
     tolk_assert(options.match_blocks.size() == 2);
-    insert_debug_info_inner(loc, ast_match_arm, code);
+    insert_debug_info_inner(loc, ast_match_expression, code);
     std::vector ir_result = code.create_tmp_var(options.match_expr_type, loc, "(match-expression)");
     std::vector ir_is_right = ctx->loadUint(1, "(eitherBit)");
 
@@ -733,6 +733,7 @@ struct S_Either final : ISerializer {
     {
       code.push_set_cur(if_op.block0);
       const LazyMatchOptions::MatchBlock* m_block = options.find_match_block(t_right);
+      insert_debug_info_inner(m_block->v_body->loc, ast_match_arm, code);
       std::vector ith_result = pre_compile_expr(m_block->v_body, code);
       options.save_match_result_on_arm_end(code, loc, m_block, std::move(ith_result), ir_result);
       code.close_pop_cur(loc);
