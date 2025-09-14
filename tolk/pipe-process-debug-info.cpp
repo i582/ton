@@ -41,6 +41,10 @@ void pipeline_process_debug_info(std::ostream& debug_out) {
       auto ob = vb.enter_object();
       ob("idx", td::JsonRaw(std::to_string(entry.idx)));
 
+      if (entry.descr.size() != 0) {
+        ob("descr", entry.descr);
+      }
+
       if (entry.is_entry) {
         ob("is_entry", td::JsonBool(entry.is_entry));
       }

@@ -5,7 +5,7 @@
 
 namespace tolk {
 
-void insert_debug_info_inner(SrcLocation loc, ASTNodeKind kind, CodeBlob& code, size_t line_offset) {
+void insert_debug_info_inner(SrcLocation loc, ASTNodeKind kind, CodeBlob& code, size_t line_offset, std::string descr) {
   if (!G.settings.with_debug_info) {
     return;
   }
@@ -30,6 +30,7 @@ void insert_debug_info_inner(SrcLocation loc, ASTNodeKind kind, CodeBlob& code, 
 
   auto info = SourceMapEntry{};
   info.idx = op.source_map_entry_idx;
+  info.descr = descr;
   info.is_entry = kind == ast_function_declaration;
 
 #ifdef TOLK_DEBUG
@@ -59,7 +60,7 @@ void insert_debug_info_inner(SrcLocation loc, ASTNodeKind kind, CodeBlob& code, 
 }
 
 void insert_debug_info(AnyV v, CodeBlob& code) {
-  insert_debug_info_inner(v->loc, v->kind, code, 0);
+  insert_debug_info_inner(v->loc, v->kind, code, 0, "");
 }
 
 }

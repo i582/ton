@@ -1269,8 +1269,6 @@ static std::vector<var_idx_t> process_assignment(V<ast_assign> v, CodeBlob& code
 }
 
 static std::vector<var_idx_t> process_set_assign(V<ast_set_assign> v, CodeBlob& code, TypePtr target_type) {
-  insert_debug_info_inner(v->loc, v->kind, code);
-
   // for "a += b", emulate "a = a + b"
   // seems not beautiful, but it works; probably, this transformation should be done at AST level in advance
   std::string_view calc_operator = v->operator_name;  // "+" for operator +=
@@ -1311,6 +1309,9 @@ static std::vector<var_idx_t> process_binary_operator(V<ast_binary_operator> v, 
     Op& if_op = code.emplace_back(v->loc, Op::_If, cond);
     code.push_set_cur(if_op.block0);
 
+    if (t == tok_logical_or) {
+      insert_debug_info_inner(v->loc, ast_binary_operator, code, 0, "lhs of || is true");
+    }
     // For &&: true-branch evaluates RHS; mark RHS location
     if (t == tok_logical_and) {
       insert_debug_info_inner(v->get_rhs()->loc, ast_binary_operator, code);
@@ -1322,6 +1323,9 @@ static std::vector<var_idx_t> process_binary_operator(V<ast_binary_operator> v, 
     // For ||: false-branch evaluates RHS; mark RHS location
     if (t == tok_logical_or) {
       insert_debug_info_inner(v->get_rhs()->loc, ast_binary_operator, code);
+    }
+    if (t == tok_logical_and) {
+      insert_debug_info_inner(v->loc, ast_binary_operator, code, 0, "rhs of && is false");
     }
     code.emplace_back(v->loc, Op::_Let, rvect, pre_compile_expr(t == tok_logical_and ? v_0 : v_b_ne_0, code, nullptr));
     code.close_pop_cur(v->loc);
@@ -1438,14 +1442,17 @@ static std::vector<var_idx_t> process_lazy_operator(V<ast_lazy_operator> v, Code
   bool has_passed_options = false;
   if (f_name == "T.fromSlice") {
     std::vector passed_slice = pre_compile_expr(v_call->get_arg(0)->get_expr(), code);
+    insert_debug_info_inner(v->loc, ast_function_call, code);
     code.emplace_back(v->loc, Op::_Let, ir_slice, std::move(passed_slice));
     has_passed_options = v_call->get_num_args() == 2;
   } else if (f_name == "T.fromCell") {
     std::vector ir_cell = pre_compile_expr(v_call->get_arg(0)->get_expr(), code);
+    insert_debug_info_inner(v->loc, ast_function_call, code);
     code.emplace_back(v->loc, Op::_Call, ir_slice, ir_cell, lookup_function("cell.beginParse"));
     has_passed_options = v_call->get_num_args() == 2;
   } else if (f_name == "Cell<T>.load") {
     std::vector ir_cell = pre_compile_expr(v_call->get_callee()->try_as<ast_dot_access>()->get_obj(), code);
+    insert_debug_info_inner(v->loc, ast_function_call, code);
     code.emplace_back(v->loc, Op::_Call, ir_slice, ir_cell, lookup_function("cell.beginParse"));
     has_passed_options = v_call->get_num_args() == 1;
   } else {
