@@ -1427,6 +1427,7 @@ static std::vector<var_idx_t> process_lazy_operator(V<ast_lazy_operator> v, Code
 
   FunctionPtr called_f = v_call->fun_maybe;
   if (called_f->is_code_function()) {     // `lazy loadStorage()` is allowed, it contains just `return ...`, inline it here
+    insert_debug_info_inner(v->loc, ast_function_call, code);
     auto f_body = called_f->ast_root->as<ast_function_declaration>()->get_body()->as<ast_block_statement>();
     tolk_assert(f_body->size() == 1 && f_body->get_item(0)->kind == ast_return_statement);
     auto f_returns = f_body->get_item(0)->as<ast_return_statement>();
@@ -1442,17 +1443,17 @@ static std::vector<var_idx_t> process_lazy_operator(V<ast_lazy_operator> v, Code
   bool has_passed_options = false;
   if (f_name == "T.fromSlice") {
     std::vector passed_slice = pre_compile_expr(v_call->get_arg(0)->get_expr(), code);
-    insert_debug_info_inner(v->loc, ast_function_call, code);
+    insert_debug_info_inner(v_call->loc, ast_function_call, code);
     code.emplace_back(v->loc, Op::_Let, ir_slice, std::move(passed_slice));
     has_passed_options = v_call->get_num_args() == 2;
   } else if (f_name == "T.fromCell") {
     std::vector ir_cell = pre_compile_expr(v_call->get_arg(0)->get_expr(), code);
-    insert_debug_info_inner(v->loc, ast_function_call, code);
+    insert_debug_info_inner(v_call->loc, ast_function_call, code);
     code.emplace_back(v->loc, Op::_Call, ir_slice, ir_cell, lookup_function("cell.beginParse"));
     has_passed_options = v_call->get_num_args() == 2;
   } else if (f_name == "Cell<T>.load") {
     std::vector ir_cell = pre_compile_expr(v_call->get_callee()->try_as<ast_dot_access>()->get_obj(), code);
-    insert_debug_info_inner(v->loc, ast_function_call, code);
+    insert_debug_info_inner(v_call->loc, ast_function_call, code);
     code.emplace_back(v->loc, Op::_Call, ir_slice, ir_cell, lookup_function("cell.beginParse"));
     has_passed_options = v_call->get_num_args() == 1;
   } else {
