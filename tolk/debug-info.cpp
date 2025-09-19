@@ -55,6 +55,9 @@ void insert_debug_info_inner(SrcLocation loc, ASTNodeKind kind, CodeBlob& code, 
   }
 
   info.func_name = code.fun_ref->name;
+  if (code.name != info.func_name) {
+    info.inlined_to_func_name = code.name;
+  }
   info.func_inline_mode = code.fun_ref->inline_mode;
   G.source_map.push_back(info);
 }

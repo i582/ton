@@ -312,6 +312,7 @@ struct SourceMapEntry {
    * Name oj outer function which contains this code.
    */
   std::string func_name;
+  std::string inlined_to_func_name;
 
   /**
    * Whenever outer function is inlined and how.

@@ -12,9 +12,10 @@ void pipeline_process_debug_info(std::ostream& debug_out) {
     return;
   }
 
-
   td::JsonBuilder _jb;
   auto objb = _jb.enter_object();
+
+  objb("version", "1");
 
   {
     td::JsonBuilder jsonb;
@@ -29,6 +30,22 @@ void pipeline_process_debug_info(std::ostream& debug_out) {
     arrb.leave();
 
     objb("globals", td::JsonRaw(jsonb.string_builder().as_cslice()));
+  }
+
+  {
+    td::JsonBuilder jsonb;
+    auto arrb = jsonb.enter_array();
+    for (auto file : G.all_src_files) {
+      auto vb = arrb.enter_value();
+      auto ob = vb.enter_object();
+
+      ob("path", file->realpath);
+      ob("is_stdlib", td::JsonBool(file->is_stdlib_file));
+      ob("content", file->text);
+    }
+    arrb.leave();
+
+    objb("files", td::JsonRaw(jsonb.string_builder().as_cslice()));
   }
 
   {
@@ -58,31 +75,8 @@ void pipeline_process_debug_info(std::ostream& debug_out) {
 
       // Used only for source map debug
       if (const auto file = G.all_src_files.find_file(entry.loc.file)) {
-        int start_offset = -1;
-        int end_offset = -1;
-        int cur_line = 0;
-        long search_line = entry.loc.line;
-
-        for (size_t ch_idx = 0; ch_idx < file->text.length(); ++ch_idx) {
-          const auto &ch = file->text[ch_idx];
-          if (ch == '\n') {
-            cur_line++;
-
-            if (cur_line == search_line - 1) {
-              start_offset = static_cast<int>(ch_idx + 1);
-            }
-
-            if (cur_line == search_line && start_offset != -1) {
-              end_offset = static_cast<int>(ch_idx);
-              break;
-            }
-          }
-        }
-
-        const std::string line = file->text.substr(start_offset, end_offset - start_offset);
-
-        // const auto& pos = file->convert_offset(entry.loc.offset);
-        // std::string line = std::string(pos.line_str);
+        const auto& pos = file->convert_offset(entry.loc.offset);
+        std::string line = std::string(pos.line_str);
         ob("line_str", line);
 
         std::string underline = "";
@@ -135,6 +129,9 @@ void pipeline_process_debug_info(std::ostream& debug_out) {
 
       ob("vars", vararrs);
       ob("func", entry.func_name);
+      if (entry.inlined_to_func_name != "") {
+        ob("inlined_to_func", entry.inlined_to_func_name);
+      }
       ob("func_inline_mode", static_cast<td::int64>(entry.func_inline_mode));
       if (entry.before_inlined_function_call) {
         ob("before_inlined_function_call", td::JsonBool(entry.before_inlined_function_call));

@@ -721,7 +721,9 @@ static std::vector<var_idx_t> gen_compile_time_code_instead_of_fun_call(CodeBlob
 
 std::vector<var_idx_t> gen_inline_fun_call_in_place(CodeBlob& code, TypePtr ret_type, SrcLocation loc, FunctionPtr f_inlined, AnyExprV self_obj, bool is_before_immediate_return, const std::vector<std::vector<var_idx_t>>& vars_per_arg) {
   insert_debug_info_inner(loc, ast_function_call, code);
-  G.source_map.at(G.source_map.size() - 1).before_inlined_function_call = true;
+  if (G.settings.with_debug_info) {
+    G.source_map.at(G.source_map.size() - 1).before_inlined_function_call = true;
+  }
 
   tolk_assert(vars_per_arg.size() == f_inlined->parameters.size());
   for (int i = 0; i < f_inlined->get_num_params(); ++i) {
@@ -772,7 +774,9 @@ std::vector<var_idx_t> gen_inline_fun_call_in_place(CodeBlob& code, TypePtr ret_
   visitor.start_visiting_function(f_inlined, v_ast_root);
 
   insert_debug_info_inner(loc, ast_function_call, code);
-  G.source_map.at(G.source_map.size() - 1).after_inlined_function_call = true;
+  if (G.settings.with_debug_info) {
+    G.source_map.at(G.source_map.size() - 1).after_inlined_function_call = true;
+  }
 
   code.fun_ref = backup_cur_fun;
   code.inline_rvect_out = backup_outer_inline;
