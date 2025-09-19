@@ -76,7 +76,7 @@ int tolk_proceed(const std::string &entrypoint_filename, std::ostream& source_ma
 
     pipeline_find_unused_symbols();
     pipeline_generate_fif_output_to_std_cout();
-    pipeline_process_debug_info(source_map_out);
+    pipeline_generate_source_map(source_map_out);
 
     return 0;
   } catch (Fatal& fatal) {

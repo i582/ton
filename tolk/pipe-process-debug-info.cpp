@@ -7,7 +7,7 @@
 
 namespace tolk {
 
-void pipeline_process_debug_info(std::ostream& debug_out) {
+void pipeline_generate_source_map(std::ostream& debug_out) {
   if (!G.settings.collect_source_map) {
     return;
   }

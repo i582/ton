@@ -212,7 +212,7 @@ public:
 
 int main(int argc, char* const argv[]) {
   int i;
-  while ((i = getopt(argc, argv, "o:b:O:x:SLedvh")) != -1) {
+  while ((i = getopt(argc, argv, "o:b:O:x:d:SLevh")) != -1) {
     switch (i) {
       case 'o':
         G.settings.output_filename = optarg;
@@ -237,6 +237,7 @@ int main(int argc, char* const argv[]) {
         break;
       case 'd':
         G.settings.collect_source_map = true;
+        G.settings.source_map_output_filename = optarg;
         break;
       case 'v':
         std::cout << "Tolk compiler v" << TOLK_VERSION << std::endl;
@@ -284,14 +285,14 @@ int main(int argc, char* const argv[]) {
 
   G.settings.read_callback = fs_read_callback;
 
-  const std::string source_map_filename =
-      G.settings.output_filename.empty() ? "./debug.source_map.json" : G.settings.output_filename + ".source_map.json";
-  std::ofstream debug_out(source_map_filename);
-  if (!debug_out.is_open()) {
-    std::cerr << "failed to create output file " << source_map_filename << " for source map" << std::endl;
+  const auto source_map_filename =
+      G.settings.source_map_output_filename.empty() ? "./source_map.json" : G.settings.source_map_output_filename;
+  std::ofstream source_map_out(source_map_filename);
+  if (!source_map_out.is_open()) {
+    std::cerr << "Failed to create source map file " << source_map_filename << std::endl;
     return 2;
   }
 
-  int exit_code = tolk_proceed(argv[optind], debug_out);
+  int exit_code = tolk_proceed(argv[optind], source_map_out);
   return exit_code;
 }

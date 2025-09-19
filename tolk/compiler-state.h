@@ -58,6 +58,7 @@ struct CompilerSettings {
 
   std::string output_filename;
   std::string boc_output_filename;
+  std::string source_map_output_filename;
   std::string stdlib_folder;    // path to tolk-stdlib/; note: from tolk-js it's empty! tolk-js reads files via js callback
 
   FsReadCallback read_callback;
