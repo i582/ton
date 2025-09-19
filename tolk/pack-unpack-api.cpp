@@ -473,9 +473,9 @@ PackSize estimate_serialization_size(TypePtr any_type) {
   return ctx.estimate_any(any_type);
 }
 
-std::vector<var_idx_t> generate_estimate_size_call(CodeBlob& code, SrcLocation loc, TypePtr any_type) {
-  EstimateContext ctx;
-  PackSize pack_size = ctx.estimate_any(any_type);
+std::vector<var_idx_t> generate_T_estimatePackSize(FunctionPtr called_f, CodeBlob& code, SrcLocation loc, const std::vector<std::vector<var_idx_t>>& args) {
+  TypePtr typeT = called_f->substitutedTs->typeT_at(0);
+  PackSize pack_size = estimate_serialization_size(typeT);
 
   std::vector ir_tensor = code.create_tmp_var(TypeDataTensor::create({TypeDataInt::create(), TypeDataInt::create(), TypeDataInt::create(), TypeDataInt::create()}), loc, "(result-tensor)");
   code.emplace_back(loc, Op::_IntConst, std::vector{ir_tensor[0]}, td::make_refint(pack_size.min_bits));

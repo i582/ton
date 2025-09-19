@@ -25,7 +25,6 @@
 #include "pack-unpack-api.h"
 #include "gen-entrypoints.h"
 #include "generics-helpers.h"
-#include "send-message-api.h"
 #include "gen-entrypoints.h"
 #include <compiler-state.h>
 
