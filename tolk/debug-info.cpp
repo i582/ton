@@ -14,11 +14,6 @@ void insert_debug_info_inner(SrcLocation loc, ASTNodeKind kind, CodeBlob& code, 
     return;
   }
 
-  if (code.prev_ops_kind == Op::_DebugInfo) {
-    // std::cerr << "skip repeated debug info" << std::endl;
-    // return;
-  }
-
 #ifdef TOLK_DEBUG
   const auto last_op = *std::find_if(code._vector_of_ops.rbegin(), code._vector_of_ops.rend(), [](const auto& it) {
     return it->cl != Op::_DebugInfo;

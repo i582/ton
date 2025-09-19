@@ -1172,7 +1172,6 @@ struct CodeBlob {
   bool inside_evaluating_constant = false;
   bool inlining_before_immediate_return = false;
   std::unique_ptr<Op> ops;
-  Op::OpKind prev_ops_kind;
   std::unique_ptr<Op>* cur_ops;
 #ifdef TOLK_DEBUG
   std::vector<Op*> _vector_of_ops;  // to see it in debugger instead of nested pointers
@@ -1188,7 +1187,6 @@ struct CodeBlob {
     if (forced_loc.is_defined()) {
       res.loc = forced_loc;
     }
-    prev_ops_kind = res.cl;
     cur_ops = &(res.next);
 #ifdef TOLK_DEBUG
     _vector_of_ops.push_back(&res);
