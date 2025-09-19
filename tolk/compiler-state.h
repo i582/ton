@@ -62,7 +62,7 @@ struct CompilerSettings {
 
   FsReadCallback read_callback;
 
-  ExperimentalOption remove_unused_functions{"remove-unused-functions"};
+  // ExperimentalOption some_option{"some-option"};
 
   void enable_experimental_option(std::string_view name);
   void parse_experimental_options_cmd_arg(const std::string& cmd_arg);
@@ -98,12 +98,14 @@ struct CompilerState {
   GlobalSymbolTable symtable;
   PersistentHeapAllocator persistent_mem;
 
+  std::vector<FunctionPtr> all_builtins;        // all built-in functions
   std::vector<FunctionPtr> all_functions;       // all user-defined (not built-in) global-scope functions, with generic instantiations
   std::vector<FunctionPtr> all_methods;         // all user-defined and built-in extension methods for arbitrary types (receivers)
   std::vector<FunctionPtr> all_contract_getters;
   std::vector<GlobalVarPtr> all_global_vars;
   std::vector<GlobalConstPtr> all_constants;
   std::vector<StructPtr> all_structs;
+  std::vector<EnumDefPtr> all_enums;
   AllRegisteredSrcFiles all_src_files;
 
   std::vector<SourceMapEntry> source_map;

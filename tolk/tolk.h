@@ -989,6 +989,7 @@ struct Optimizer {
   bool detect_rewrite_SWAP_PUSH_STUR();
   bool detect_rewrite_SWAP_STxxxR();
   bool detect_rewrite_NOT_THROWIF();
+  bool detect_rewrite_DICTSETB_DICTSET();
 
   AsmOpConsList extract_code();
 };
@@ -1110,15 +1111,24 @@ struct Stack {
  * 
  */
 
-typedef std::function<AsmOp(std::vector<VarDescr>&, std::vector<VarDescr>&, SrcLocation)> simple_compile_func_t;
+struct FunctionBodyBuiltinAsmOp {
+  using CompileToAsmOpImpl = AsmOp(std::vector<VarDescr>&, std::vector<VarDescr>&, SrcLocation);
 
-struct FunctionBodyBuiltin {
-  simple_compile_func_t simple_compile;
+  std::function<CompileToAsmOpImpl> simple_compile;
 
-  explicit FunctionBodyBuiltin(simple_compile_func_t compile)
+  explicit FunctionBodyBuiltinAsmOp(std::function<CompileToAsmOpImpl> compile)
     : simple_compile(std::move(compile)) {}
 
   void compile(AsmOpList& dest, std::vector<VarDescr>& out, std::vector<VarDescr>& in, SrcLocation loc) const;
+};
+
+struct FunctionBodyBuiltinGenerateOps {
+  using GenerateOpsImpl = std::vector<var_idx_t>(FunctionPtr, CodeBlob&, SrcLocation, const std::vector<std::vector<var_idx_t>>&);
+
+  std::function<GenerateOpsImpl> generate_ops;
+
+  explicit FunctionBodyBuiltinGenerateOps(std::function<GenerateOpsImpl> generate_ops)
+    : generate_ops(std::move(generate_ops)) {}
 };
 
 struct FunctionBodyAsm {
@@ -1144,6 +1154,12 @@ struct LazyVarRefAtCodegen {
 void insert_debug_info_inner(SrcLocation loc, ASTNodeKind kind, CodeBlob& code, size_t line_offset = 0, std::string descr = "");
 void insert_debug_info(AnyV v, CodeBlob& code);
 
+// CachedConstValueAtCodegen is used for a map [some_const => '5]
+struct CachedConstValueAtCodegen {
+  GlobalConstPtr const_ref;
+  std::vector<var_idx_t> ir_idx;
+};
+
 struct CodeBlob {
   int var_cnt, in_var_cnt;
   FunctionPtr fun_ref;
@@ -1151,7 +1167,9 @@ struct CodeBlob {
   SrcLocation forced_loc;
   std::vector<TmpVar> vars;
   std::vector<LazyVarRefAtCodegen> lazy_variables;
+  std::vector<CachedConstValueAtCodegen> cached_consts;
   std::vector<var_idx_t>* inline_rvect_out = nullptr;
+  bool inside_evaluating_constant = false;
   bool inlining_before_immediate_return = false;
   std::unique_ptr<Op> ops;
   Op::OpKind prev_ops_kind;
@@ -1208,6 +1226,7 @@ struct CodeBlob {
   }
   const LazyVariableLoadedState* get_lazy_variable(LocalVarPtr var_ref) const;
   const LazyVariableLoadedState* get_lazy_variable(AnyExprV v) const;
+  const CachedConstValueAtCodegen* get_cached_const(GlobalConstPtr const_ref) const;
   void prune_unreachable_code();
   void fwd_analyze();
   void mark_noreturn();
