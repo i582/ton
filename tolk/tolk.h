@@ -1246,7 +1246,7 @@ void patch_builtins_after_stdlib_loaded();
  *
  */
 
-int tolk_proceed(const std::string &entrypoint_filename, std::ostream& debug_out);
+int tolk_proceed(const std::string &entrypoint_filename, std::ostream& source_map_out);
 
 }  // namespace tolk
 

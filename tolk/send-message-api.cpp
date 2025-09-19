@@ -358,7 +358,7 @@ std::vector<var_idx_t> generate_createMessage(FunctionPtr called_f, CodeBlob& co
 }
 
 // fun createExternalLogMessage<TBody>(options: CreateExternalLogMessageOptions<TBody>): OutMessage
-std::vector<var_idx_t> generate_createExternalLogMessage(FunctionPtr called_f, CodeBlob& code, SrcLocation loc, const std::vector<std::vector<var_idx_t>>& args) {  insert_debug_info_inner(loc, ast_function_call, code);
+std::vector<var_idx_t> generate_createExternalLogMessage(FunctionPtr called_f, CodeBlob& code, SrcLocation loc, const std::vector<std::vector<var_idx_t>>& args) {
   insert_debug_info_inner(loc, ast_function_call, code);
 
   TypePtr bodyT = called_f->substitutedTs->typeT_at(0);

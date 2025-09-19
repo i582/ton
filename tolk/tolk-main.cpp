@@ -51,7 +51,7 @@ void usage(const char* progname) {
          "-x<option-names>\tEnables experimental options, comma-separated\n"
          "-S\tDon't include stack layout comments into Fift output\n"
          "-L\tDon't include original lines from Tolk src into Fift output\n"
-         "-d\tInclude debug information\n"
+         "-d\tCollect source map\n"
          "-e\tIncreases verbosity level (extra output into stderr)\n"
          "-v\tOutput version of Tolk and exit\n";
   std::exit(2);
@@ -236,7 +236,7 @@ int main(int argc, char* const argv[]) {
         G.settings.verbosity++;
         break;
       case 'd':
-        G.settings.with_debug_info = true;
+        G.settings.collect_source_map = true;
         break;
       case 'v':
         std::cout << "Tolk compiler v" << TOLK_VERSION << std::endl;

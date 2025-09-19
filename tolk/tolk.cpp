@@ -46,7 +46,7 @@ void on_assertion_failed(const char *description, const char *file_name, int lin
   throw Fatal(std::move(message));
 }
 
-int tolk_proceed(const std::string &entrypoint_filename, std::ostream& debug_out) {
+int tolk_proceed(const std::string &entrypoint_filename, std::ostream& source_map_out) {
   type_system_init();
   define_builtins();
   lexer_init();
@@ -76,7 +76,7 @@ int tolk_proceed(const std::string &entrypoint_filename, std::ostream& debug_out
 
     pipeline_find_unused_symbols();
     pipeline_generate_fif_output_to_std_cout();
-    pipeline_process_debug_info(debug_out);
+    pipeline_process_debug_info(source_map_out);
 
     return 0;
   } catch (Fatal& fatal) {

@@ -6,7 +6,7 @@
 namespace tolk {
 
 void insert_debug_info_inner(SrcLocation loc, ASTNodeKind kind, CodeBlob& code, size_t line_offset, std::string descr) {
-  if (!G.settings.with_debug_info) {
+  if (!G.settings.collect_source_map) {
     return;
   }
 

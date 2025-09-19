@@ -8,7 +8,7 @@
 namespace tolk {
 
 void pipeline_process_debug_info(std::ostream& debug_out) {
-  if (!G.settings.with_debug_info) {
+  if (!G.settings.collect_source_map) {
     return;
   }
 
