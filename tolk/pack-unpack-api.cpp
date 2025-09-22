@@ -254,7 +254,7 @@ std::vector<var_idx_t> generate_T_toCell(FunctionPtr called_f, CodeBlob& code, S
   FunctionPtr f_endCell = lookup_function("builder.endCell");
   std::vector rvect_builder = code.create_var(TypeDataBuilder::create(), loc, "b");
 
-  insert_debug_info_inner(loc, ast_function_call, code);
+  insert_debug_info(loc, ast_function_call, code);
   code.emplace_back(loc, Op::_Call, rvect_builder, std::vector<var_idx_t>{}, f_beginCell);
 
   PackContext ctx(code, loc, rvect_builder, args[1]);
@@ -269,7 +269,7 @@ std::vector<var_idx_t> generate_T_toCell(FunctionPtr called_f, CodeBlob& code, S
 // fun builder.storeAny<T>(mutate self, v: T, options: PackOptions = {}): self
 std::vector<var_idx_t> generate_builder_storeAny(FunctionPtr called_f, CodeBlob& code, SrcLocation loc, const std::vector<std::vector<var_idx_t>>& args) {
   TypePtr typeT = called_f->substitutedTs->typeT_at(0);
-  insert_debug_info_inner(loc, ast_function_call, code);
+  insert_debug_info(loc, ast_function_call, code);
   PackContext ctx(code, loc, args[0], args[2]);   // mutate this builder
   ctx.generate_pack_any(typeT, std::vector(args[1]));
 
@@ -278,7 +278,7 @@ std::vector<var_idx_t> generate_builder_storeAny(FunctionPtr called_f, CodeBlob&
 
 // fun T.fromSlice(rawSlice: slice, options: UnpackOptions): T
 std::vector<var_idx_t> generate_T_fromSlice(FunctionPtr called_f, CodeBlob& code, SrcLocation loc, const std::vector<std::vector<var_idx_t>>& args) {
-  insert_debug_info_inner(loc, ast_function_call, code);
+  insert_debug_info(loc, ast_function_call, code);
 
   std::vector slice_copy = code.create_var(TypeDataSlice::create(), loc, "s");
   code.emplace_back(loc, Op::_Let, slice_copy, args[0]);
@@ -310,7 +310,7 @@ std::vector<var_idx_t> generate_slice_loadAny(FunctionPtr called_f, CodeBlob& co
 // fun T.fromCell(packedCell: cell, options: UnpackOptions): T
 // fun Cell<T>.load(self, options: UnpackOptions): T
 std::vector<var_idx_t> generate_T_fromCell(FunctionPtr called_f, CodeBlob& code, SrcLocation loc, const std::vector<std::vector<var_idx_t>>& args) {
-  insert_debug_info_inner(loc, ast_function_call, code);
+  insert_debug_info(loc, ast_function_call, code);
 
   TypePtr typeT = called_f->substitutedTs->typeT_at(0);
   FunctionPtr f_beginParse = lookup_function("cell.beginParse");
@@ -331,7 +331,7 @@ std::vector<var_idx_t> generate_T_fromCell(FunctionPtr called_f, CodeBlob& code,
 // fun slice.skipAny<T>(mutate self, options: UnpackOptions): self
 std::vector<var_idx_t> generate_slice_skipAny(FunctionPtr called_f, CodeBlob& code, SrcLocation loc, const std::vector<std::vector<var_idx_t>>& args) {
   TypePtr typeT = called_f->substitutedTs->typeT_at(0);
-  insert_debug_info_inner(loc, ast_function_call, code);
+  insert_debug_info(loc, ast_function_call, code);
   UnpackContext ctx(code, loc, args[0], args[1]);    // mutate this slice
   ctx.generate_skip_any(typeT);
 
@@ -400,7 +400,7 @@ std::vector<var_idx_t> generate_lazy_struct_to_cell(CodeBlob& code, SrcLocation 
   StructPtr original_struct = loaded_state->original_struct;
   StructPtr hidden_struct = loaded_state->hidden_struct;
 
-  insert_debug_info_inner(loc, ast_function_call, code);
+  insert_debug_info(loc, ast_function_call, code);
 
   std::vector rvect_builder = code.create_var(TypeDataBuilder::create(), loc, "b");
   code.emplace_back(loc, Op::_Call, rvect_builder, std::vector<var_idx_t>{}, lookup_function("beginCell"));

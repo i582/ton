@@ -1151,7 +1151,7 @@ struct LazyVarRefAtCodegen {
     : var_ref(var_ref), var_state(var_state) {}
 };
 
-void insert_debug_info_inner(SrcLocation loc, ASTNodeKind kind, CodeBlob& code, size_t line_offset = 0, std::string descr = "");
+void insert_debug_info(SrcLocation loc, ASTNodeKind kind, CodeBlob& code, size_t line_offset = 0, std::string descr = "");
 void insert_debug_info(AnyV v, CodeBlob& code);
 
 // CachedConstValueAtCodegen is used for a map [some_const => '5]

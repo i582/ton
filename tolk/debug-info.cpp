@@ -5,7 +5,7 @@
 
 namespace tolk {
 
-void insert_debug_info_inner(SrcLocation loc, ASTNodeKind kind, CodeBlob& code, size_t line_offset, std::string descr) {
+void insert_debug_info(SrcLocation loc, ASTNodeKind kind, CodeBlob& code, size_t line_offset, std::string descr) {
   if (!G.settings.collect_source_map) {
     return;
   }
@@ -36,6 +36,7 @@ void insert_debug_info_inner(SrcLocation loc, ASTNodeKind kind, CodeBlob& code, 
     info.opcode = st.str();
   }
 #endif
+
   info.ast_kind = ASTStringifier::ast_node_kind_to_string(kind);
 
   if (const SrcFile* src_file = loc.get_src_file(); src_file != nullptr) {
@@ -51,14 +52,16 @@ void insert_debug_info_inner(SrcLocation loc, ASTNodeKind kind, CodeBlob& code, 
 
   info.func_name = code.fun_ref->name;
   if (code.name != info.func_name) {
+    // If a function was inlined, `code.name` will contain the name of the function we are inlining into
     info.inlined_to_func_name = code.name;
   }
   info.func_inline_mode = code.fun_ref->inline_mode;
+
   G.source_map.push_back(info);
 }
 
 void insert_debug_info(AnyV v, CodeBlob& code) {
-  insert_debug_info_inner(v->loc, v->kind, code, 0, "");
+  insert_debug_info(v->loc, v->kind, code, 0, "");
 }
 
 }
