@@ -281,20 +281,6 @@ bool Op::generate_code_step(Stack& stack) {
     std::ostringstream ops;
     ops << source_map_entry_idx << " DEBUGMARK"; // pseudo instruction
 
-    // Attach a source snippet as a Fift comment to make mapping explicit in compiled output
-    if (const SrcFile* src_file = loc.get_src_file()) {
-      const auto& pos = src_file->convert_offset(loc.get_char_offset());
-      std::string line = std::string(pos.line_str);
-      // Trim trailing CR/LF and excessive spaces to keep output compact
-      while (!line.empty() && (line.back() == '\r' || line.back() == '\n')) line.pop_back();
-      // Avoid extremely long comments
-      if (line.size() > 200) {
-        line.resize(200);
-        line += "...";
-      }
-      ops << " // " << line;
-    }
-
     // Append opcode to a list
     if (const auto list_size = stack.o.list_.size(); list_size > 0) {
       stack.o.insert(stack.o.list_.size(), loc, ops.str());
@@ -302,7 +288,9 @@ bool Op::generate_code_step(Stack& stack) {
 
     if (source_map_entry_idx < G.source_map.size()) {
       auto& entry = G.source_map.at(source_map_entry_idx);
-      for (auto index : stack.s) {
+
+      // Collect all available variables at this point
+      for (const auto index : stack.s) {
         if (const auto var = stack.o.get_var(index); var.has_value()) {
           const auto& [data, value] = *var;
           entry.vars.push_back({data, value});
