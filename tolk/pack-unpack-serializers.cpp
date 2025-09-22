@@ -728,7 +728,6 @@ struct S_Either final : ISerializer {
     insert_debug_info(loc, ast_match_expression, code);
     std::vector ir_result = code.create_tmp_var(options.match_expr_type, loc, "(match-expression)");
     std::vector ir_is_right = ctx->loadUint(1, "(eitherBit)");
-
     Op& if_op = code.emplace_back(loc, Op::_If, std::move(ir_is_right));
     {
       code.push_set_cur(if_op.block0);
@@ -857,7 +856,6 @@ struct S_MultipleConstructors final : ISerializer {
       std::vector args = { ctx->ir_slice0, code.create_int(loc, opcode.pack_prefix, "(pack-prefix)"), code.create_int(loc, opcode.prefix_len, "(prefix-len)") };
       insert_debug_info(m_block->arm_variant_node->loc, ast_match_arm, code);
       code.emplace_back(loc, Op::_Call, std::vector{ctx->ir_slice0, ir_prefix_eq[0]}, std::move(args), f_tryStripPrefix);
-
       Op& if_op = code.emplace_back(loc, Op::_If, ir_prefix_eq);
       code.push_set_cur(if_op.block0);
       std::vector ith_result = pre_compile_expr(options.match_blocks[i].v_body, code);
@@ -1020,7 +1018,6 @@ struct S_CustomStruct final : ISerializer {
     } else {
       code.emplace_back(loc, Op::_Let, ir_prefix_eq, std::vector{code.create_int(loc, -1, "(true)")});
     }
-
     Op& if_op = code.emplace_back(loc, Op::_If, ir_prefix_eq);
     {
       code.push_set_cur(if_op.block0);

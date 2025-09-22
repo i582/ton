@@ -121,6 +121,7 @@ static int calc_offset_on_stack(StructPtr struct_ref, int field_idx) {
   return stack_offset;
 }
 
+
 // Main goal of LValContext is to handle non-primitive lvalues. At IR level, a usual local variable
 // exists, but on its change, something non-trivial should happen.
 // Example: `globalVar = 9` actually does `Const $5 = 9` + `Let $6 = $5` + `SetGlob "globVar" = $6`
@@ -658,6 +659,9 @@ static std::vector<var_idx_t> gen_compile_time_code_instead_of_fun_call(CodeBlob
 std::vector<var_idx_t> gen_inline_fun_call_in_place(CodeBlob& code, TypePtr ret_type, SrcLocation loc, FunctionPtr f_inlined, AnyExprV self_obj, bool is_before_immediate_return, const std::vector<std::vector<var_idx_t>>& vars_per_arg) {
   insert_debug_info(loc, ast_function_call, code);
   if (G.settings.collect_source_map) {
+    // Inlined functions are tricky for handling in debuggers, code coverage and other tools
+    // which uses source maps. To simplify handling we explicitly mark start and end instructions
+    // of inlined function, so tools can understand when we step into and step out inlined function.
     G.source_map.at(G.source_map.size() - 1).before_inlined_function_call = true;
   }
 
@@ -711,6 +715,7 @@ std::vector<var_idx_t> gen_inline_fun_call_in_place(CodeBlob& code, TypePtr ret_
 
   insert_debug_info(loc, ast_function_call, code);
   if (G.settings.collect_source_map) {
+    // Mark end instruction as well
     G.source_map.at(G.source_map.size() - 1).after_inlined_function_call = true;
   }
 
@@ -1269,7 +1274,6 @@ static std::vector<var_idx_t> process_binary_operator(V<ast_binary_operator> v, 
   TokenType t = v->tok;
 
   if (v->fun_ref) {   // almost all operators, fun_ref was assigned at type inferring
-    // insert_debug_info_inner(v->loc, ast_binary_operator, code);
     std::vector<var_idx_t> args_vars = pre_compile_tensor(code, {v->get_lhs(), v->get_rhs()});
     std::vector<var_idx_t> rvect = gen_op_call(code, v->inferred_type, v->loc, std::move(args_vars), v->fun_ref, "(binary-op)");
     return transition_to_target_type(std::move(rvect), code, target_type, v);
@@ -2038,8 +2042,6 @@ static std::vector<var_idx_t> process_artificial_aux_vertex(V<ast_artificial_aux
     V<ast_match_expression> v_match = v->get_wrapped_expr()->as<ast_match_expression>();
     pre_compile_expr(v_match->get_subject(), code, nullptr);
 
-    // insert_debug_info_inner(v_match->loc, ast_match_expression, code);
-
     const LazyVariableLoadedState* lazy_variable = code.get_lazy_variable(data->var_ref);
     tolk_assert(lazy_variable);
     TypePtr t_union = data->field_ref ? data->field_ref->declared_type : data->var_ref->declared_type;
@@ -2081,11 +2083,6 @@ static std::vector<var_idx_t> process_artificial_aux_vertex(V<ast_artificial_aux
 }
 
 std::vector<var_idx_t> pre_compile_expr(AnyExprV v, CodeBlob& code, TypePtr target_type, LValContext* lval_ctx) {
-  if (v->kind != ast_binary_operator && v->kind != ast_unary_operator && v->kind != ast_reference &&
-      v->kind != ast_is_type_operator && v->kind != ast_function_call) {
-    // insert_debug_info(v, code);
-  }
-
   switch (v->kind) {
     case ast_reference:
       return process_reference(v->as<ast_reference>(), code, target_type, lval_ctx);
@@ -2372,9 +2369,8 @@ static void append_implicit_return_statement(SrcLocation loc_end, CodeBlob& code
   code.emplace_back(loc_end, Op::_Return, std::move(mutated_vars));
 }
 
-void process_any_statement(AnyV v, CodeBlob& code) {
-  // insert_debug_info(v, code);
 
+void process_any_statement(AnyV v, CodeBlob& code) {
   switch (v->kind) {
     case ast_block_statement:
       return process_block_statement(v->as<ast_block_statement>(), code);
@@ -2527,7 +2523,6 @@ public:
     tolk_assert(fun_ref->is_type_inferring_done());
     if (fun_ref->is_code_function() && !fun_ref->is_inlined_in_place()) {
       convert_function_body_to_CodeBlob(fun_ref, std::get<FunctionBodyCode*>(fun_ref->body));
-      std::get<FunctionBodyCode*>(fun_ref->body)->code->print(std::cerr);
     } else if (fun_ref->is_asm_function()) {
       convert_asm_body_to_AsmOp(fun_ref, std::get<FunctionBodyAsm*>(fun_ref->body));
     }

@@ -32,7 +32,6 @@
 #define tolk_assert(expr) if(UNLIKELY(!(expr))) on_assertion_failed(#expr, __FILE__, __LINE__);
 
 namespace tolk {
-struct Op;
 
 GNU_ATTRIBUTE_COLD GNU_ATTRIBUTE_NORETURN
 void on_assertion_failed(const char *description, const char *file_name, int line_number);
