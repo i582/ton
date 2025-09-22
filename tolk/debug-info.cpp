@@ -47,7 +47,7 @@ void insert_debug_info(SrcLocation loc, ASTNodeKind kind, CodeBlob& code, size_t
     info.loc.line = pos.line_no;
     info.loc.line_offset = line_offset;
     info.loc.col = pos.char_no - 1;
-    info.loc.length = pos.line_str.length();
+    info.loc.length = 1; // Once we have the actual length of node, we should use it here
   }
 
   info.func_name = code.fun_ref->name;

@@ -294,7 +294,15 @@ struct SourceMapEntry {
    * Unique ID of this entry.
    */
   size_t idx{};
+
+  /**
+   * If true, entry represents code before first statement.
+   */
   bool is_entry{};
+
+  /**
+   * Human-readable description of current entry.
+   */
   std::string descr{};
 
   /**
@@ -311,18 +319,39 @@ struct SourceMapEntry {
    * Name oj outer function which contains this code.
    */
   std::string func_name;
+
+  /**
+   * If a function was inlined, this field will contain the name
+   * of the function where the code was inlined.
+   */
   std::string inlined_to_func_name;
 
   /**
    * Whenever outer function is inlined and how.
    */
   FunctionInlineMode func_inline_mode;
+
+  /**
+   * Marks the first instruction of inlined function.
+   */
   bool before_inlined_function_call{false};
+
+  /**
+   * Marks the last instruction of inlined function.
+   */
   bool after_inlined_function_call{false};
+
+  /**
+   * The AST node for which this entry was generated.
+   */
+  std::string ast_kind;
+
 #ifdef TOLK_DEBUG
+  /**
+   * String representation of `Op` for which this entry was generated.
+   */
   std::string opcode;
 #endif
-  std::string ast_kind;
 };
 
 struct SourceMapGlobalVariable {
@@ -334,12 +363,6 @@ struct SourceMapGlobalVariable {
    * Human-readable type pf this global variable.
    */
   std::string type;
-};
-
-struct SourceMap {
-  std::string version;
-  std::vector<SourceMapGlobalVariable> globals;
-  std::vector<SourceMapEntry> entries;
 };
 
 struct Op {

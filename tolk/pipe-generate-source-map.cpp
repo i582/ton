@@ -91,9 +91,9 @@ void pipeline_generate_source_map(std::ostream& debug_out) {
 
       ob("file", entry.loc.file);
       ob("line", static_cast<td::int64>(entry.loc.line));
-      ob("pos", static_cast<td::int64>(entry.loc.col));
+      ob("col", static_cast<td::int64>(entry.loc.col));
       ob("line_offset", static_cast<td::int64>(entry.loc.line_offset));
-      ob("length", static_cast<td::int64>(entry.loc.length));
+      ob("length", static_cast<td::int64>(entry.loc.length)); // Always 1 for now
 
       td::JsonBuilder var_builder;
       auto var_array_builder = var_builder.enter_array();
