@@ -668,7 +668,6 @@ struct AsmOpList {
   std::vector<td::RefInt256> constants_;
   bool retalt_{false};
   bool retalt_inserted_{false};
-  std::optional<std::tuple<TmpVar, std::string>> get_var(std::pair<var_idx_t, const_idx_t> idx_pair) const;
   void out(std::ostream& os, int mode = 0) const;
   AsmOpList(int indent = 0, const std::vector<TmpVar>* var_names = nullptr) : indent_(indent), var_names_(var_names) {
   }
@@ -679,6 +678,7 @@ struct AsmOpList {
   }
   const_idx_t register_const(td::RefInt256 new_const);
   td::RefInt256 get_const(const_idx_t idx);
+  std::optional<std::tuple<TmpVar, std::string>> get_var(const std::pair<var_idx_t, const_idx_t>& idx_pair) const;
   void show_var_ext(std::ostream& os, std::pair<var_idx_t, const_idx_t> idx_pair) const;
   void adjust_last() {
     if (list_.back().is_nop()) {

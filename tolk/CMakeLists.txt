@@ -31,7 +31,7 @@ set(TOLK_SOURCE
         pipe-ast-to-legacy.cpp
         pipe-find-unused-symbols.cpp
         pipe-generate-fif-output.cpp
-        pipe-process-debug-info.cpp
+        pipe-generate-source-map.cpp
         type-system.cpp
         smart-casts-cfg.cpp
         generics-helpers.cpp
