@@ -658,7 +658,7 @@ static std::vector<var_idx_t> gen_compile_time_code_instead_of_fun_call(CodeBlob
 
 std::vector<var_idx_t> gen_inline_fun_call_in_place(CodeBlob& code, TypePtr ret_type, SrcLocation loc, FunctionPtr f_inlined, AnyExprV self_obj, bool is_before_immediate_return, const std::vector<std::vector<var_idx_t>>& vars_per_arg) {
   insert_debug_info(loc, ast_function_call, code);
-  if (G.settings.collect_source_map) {
+  if (G.settings.collect_source_map && G.source_map.size() > 0) {
     // Inlined functions are tricky for handling in debuggers, code coverage and other tools
     // which uses source maps. To simplify handling we explicitly mark start and end instructions
     // of inlined function, so tools can understand when we step into and step out inlined function.
@@ -714,7 +714,7 @@ std::vector<var_idx_t> gen_inline_fun_call_in_place(CodeBlob& code, TypePtr ret_
   visitor.start_visiting_function(f_inlined, v_ast_root);
 
   insert_debug_info(loc, ast_function_call, code);
-  if (G.settings.collect_source_map) {
+  if (G.settings.collect_source_map && G.source_map.size() > 0) {
     // Mark end instruction as well
     G.source_map.at(G.source_map.size() - 1).after_inlined_function_call = true;
   }
