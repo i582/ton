@@ -400,7 +400,12 @@ struct Op {
   std::unique_ptr<Op> block0, block1;
   td::RefInt256 int_const;
   std::string str_const;
+
+  /**
+   * Current ID of source map entry, see <code>insert_debug_info</code>.
+   */
   size_t source_map_entry_idx{0};
+
   Op(SrcLocation loc, OpKind cl) : cl(cl), flags(0), loc(loc) {
   }
   Op(SrcLocation loc, OpKind cl, const std::vector<var_idx_t>& left)
@@ -1261,6 +1266,8 @@ AsmOp push_const(SrcLocation loc, td::RefInt256 x);
 
 void define_builtins();
 void patch_builtins_after_stdlib_loaded();
+
+
 
 /*
  *
