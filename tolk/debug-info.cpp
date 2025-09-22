@@ -15,9 +15,10 @@ void insert_debug_info(SrcLocation loc, ASTNodeKind kind, CodeBlob& code, size_t
   }
 
 #ifdef TOLK_DEBUG
-  const auto last_op = *std::find_if(code._vector_of_ops.rbegin(), code._vector_of_ops.rend(), [](const auto& it) {
+  const auto last_op = std::find_if(code._vector_of_ops.rbegin(), code._vector_of_ops.rend(), [](const auto& it) {
     return it->cl != Op::_DebugInfo;
   });
+  const Op* last_op_ptr = last_op != code._vector_of_ops.rend() ? *last_op : nullptr;
 #endif
 
   auto& op = code.emplace_back(loc, Op::_DebugInfo);
@@ -29,9 +30,9 @@ void insert_debug_info(SrcLocation loc, ASTNodeKind kind, CodeBlob& code, size_t
   info.is_entry = kind == ast_function_declaration;
 
 #ifdef TOLK_DEBUG
-  if (last_op) {
+  if (last_op_ptr) {
     std::stringstream st;
-    last_op->show(st, code.vars, "", 4);
+    last_op_ptr->show(st, code.vars, "", 4);
 
     info.opcode = st.str();
   }
