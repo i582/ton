@@ -287,10 +287,14 @@ int main(int argc, char* const argv[]) {
 
   const auto source_map_filename =
       G.settings.source_map_output_filename.empty() ? "./source_map.json" : G.settings.source_map_output_filename;
-  std::ofstream source_map_out(source_map_filename);
-  if (!source_map_out.is_open()) {
-    std::cerr << "Failed to create source map file " << source_map_filename << std::endl;
-    return 2;
+
+  std::ofstream source_map_out;
+  if (G.settings.collect_source_map) {
+    source_map_out.open(source_map_filename);
+    if (!source_map_out.is_open()) {
+      std::cerr << "Failed to create source map file " << source_map_filename << std::endl;
+      return 2;
+    }
   }
 
   int exit_code = tolk_proceed(argv[optind], source_map_out);
