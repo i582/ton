@@ -96,9 +96,9 @@ static td::Result<std::string> compile_internal(char *config_json) {
     // which is a key part of source map construction.
     auto fift_source_map_res = fift::compile_asm_program(std::move(raw_fift_code), "/fiftlib/");
     if (fift_source_map_res.is_ok()) {
-      auto res = fift_source_map_res.move_as_ok();
-      obj("fiftSourceMapCode", res.fiftCode);
-      obj("fiftSourceMapBoc64", res.codeBoc64);
+      const auto fift_source_map_res_ok = fift_source_map_res.move_as_ok();
+      obj("fiftSourceMapCode", fift_source_map_res_ok.fiftCode);
+      obj("sourceMapCodeBoc64", fift_source_map_res_ok.codeBoc64);
     }
     obj("sourceMap", td::JsonRaw(source_map));
   }
