@@ -53,51 +53,55 @@ void pipeline_generate_source_map(std::ostream& debug_out) {
     auto array_builder = jsonb.enter_array();
 
     for (size_t i = 0; i < G.source_map.size(); ++i) {
-      const auto &entry = G.source_map[i];
+      const auto& entry = G.source_map[i];
       auto value_builder = array_builder.enter_value();
       auto ob = value_builder.enter_object();
 
       ob("idx", td::JsonRaw(std::to_string(entry.idx)));
 
-      if (entry.descr.size() != 0) {
-        ob("descr", entry.descr);
-      }
-
-      if (entry.is_entry) {
-        ob("is_entry", td::JsonBool(entry.is_entry));
-      }
-
-      ob("ast_kind", entry.ast_kind);
-
 #ifdef TOLK_DEBUG
-      if (i + 1 < G.source_map.size()) {
-        ob("opcode", G.source_map[i + 1].opcode);
-      }
-
-      if (const auto file = G.all_src_files.find_file(entry.loc.file)) {
-        const auto& pos = file->convert_offset(entry.loc.offset);
-        std::string line = std::string(pos.line_str);
-        ob("line_str", line);
-
-        std::string underline = "";
-        for (int j = 0; j < entry.loc.col; ++j) {
-          underline += " ";
+      {
+        td::JsonBuilder debugb;
+        auto debug_builder = debugb.enter_object();
+        if (i + 1 < G.source_map.size()) {
+          debug_builder("opcode", G.source_map[i + 1].opcode);
         }
-        underline += "^";
 
-        ob("line_off", underline);
+        if (const auto file = G.all_src_files.find_file(entry.loc.file)) {
+          const auto& pos = file->convert_offset(entry.loc.offset);
+          const auto line = std::string(pos.line_str);
+          debug_builder("line_str", line);
+
+          std::string underline = "";
+          for (int j = 0; j < entry.loc.col; ++j) {
+            underline += " ";
+          }
+          underline += "^";
+
+          debug_builder("line_off", underline);
+        }
+        debug_builder.leave();
+
+        ob("debug", td::JsonRaw(debugb.string_builder().as_cslice()));
       }
 #endif
 
-      ob("file", entry.loc.file);
-      ob("line", static_cast<td::int64>(entry.loc.line));
-      ob("col", static_cast<td::int64>(entry.loc.col));
-      ob("line_offset", static_cast<td::int64>(entry.loc.line_offset));
-      ob("length", static_cast<td::int64>(entry.loc.length)); // Always 1 for now
+      {
+        td::JsonBuilder locb;
+        auto loc_builder = locb.enter_object();
+        loc_builder("file", entry.loc.file);
+        loc_builder("line", static_cast<td::int64>(entry.loc.line));
+        loc_builder("col", static_cast<td::int64>(entry.loc.col));
+        loc_builder("line_offset", static_cast<td::int64>(entry.loc.line_offset));
+        loc_builder("length", static_cast<td::int64>(entry.loc.length));
+        loc_builder.leave();
+
+        ob("loc", td::JsonRaw(locb.string_builder().as_cslice()));
+      }
 
       td::JsonBuilder var_builder;
       auto var_array_builder = var_builder.enter_array();
-      for (const auto &[var, value] : entry.vars) {
+      for (const auto& [var, value] : entry.vars) {
         auto var_array_builder_value = var_array_builder.enter_value();
         auto var_array_value_object = var_array_builder_value.enter_object();
 
@@ -116,27 +120,50 @@ void pipeline_generate_source_map(std::ostream& debug_out) {
             }
 
             parent_type_array_builder.leave();
-            var_array_value_object("possible_qualifier_types", td::JsonRaw(parent_type_builder.string_builder().as_cslice()));
+            var_array_value_object("possible_qualifier_types",
+                                   td::JsonRaw(parent_type_builder.string_builder().as_cslice()));
           }
         }
 
         if (!value.empty()) {
-          var_array_value_object("value", value);
+          var_array_value_object("constant_value", value);
         }
       }
       var_array_builder.leave();
 
       ob("vars", td::JsonRaw(var_builder.string_builder().as_cslice()));
-      ob("func", entry.func_name);
-      if (entry.inlined_to_func_name != "") {
-        ob("inlined_to_func", entry.inlined_to_func_name);
-      }
-      ob("func_inline_mode", static_cast<td::int64>(entry.func_inline_mode));
-      if (entry.before_inlined_function_call) {
-        ob("before_inlined_function_call", td::JsonBool(entry.before_inlined_function_call));
-      }
-      if (entry.after_inlined_function_call) {
-        ob("after_inlined_function_call", td::JsonBool(entry.after_inlined_function_call));
+
+      {
+        td::JsonBuilder ctxb;
+        auto ctx_builder = ctxb.enter_object();
+
+        if (entry.descr.size() != 0) {
+          ctx_builder("descr", entry.descr);  // Human-readable description
+        }
+
+        if (entry.is_entry) {
+          ctx_builder("is_entry", td::JsonBool(entry.is_entry));  // Marks function entry points
+        }
+
+        ctx_builder("ast_kind", entry.ast_kind);  // AST node type
+
+        ctx_builder("func_name", entry.func_name);
+        if (entry.inlined_to_func_name != "") {
+          ctx_builder("inlined_to_func", entry.inlined_to_func_name);
+        }
+
+        ctx_builder("func_inline_mode", static_cast<td::int64>(entry.func_inline_mode));
+
+        if (entry.before_inlined_function_call) {
+          ctx_builder("before_inlined_function_call", td::JsonBool(entry.before_inlined_function_call));
+        }
+
+        if (entry.after_inlined_function_call) {
+          ctx_builder("after_inlined_function_call", td::JsonBool(entry.after_inlined_function_call));
+        }
+        ctx_builder.leave();
+
+        ob("context", td::JsonRaw(ctxb.string_builder().as_cslice()));
       }
     }
     array_builder.leave();
