@@ -33,6 +33,7 @@ struct CompiledProgramOutput {
   std::string fiftCode;
   std::string codeBoc64;
   std::string codeHashHex;
+  std::string debugMarkBase64;
 };
 
 td::Result<fift::SourceLookup> create_mem_source_lookup(std::string main, std::string fift_dir = "",

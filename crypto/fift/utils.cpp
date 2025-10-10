@@ -231,6 +231,7 @@ td::Result<CompiledProgramOutput> compile_asm_program(std::string&& program_code
   main_fif.append(program_code.data(), program_code.size());
   main_fif.append(R"( dup hashB B>X      $>B "hex" B>file)");   // write codeHashHex to a file
   main_fif.append(R"(     boc>B B>base64 $>B "boc" B>file)");   // write codeBoc64 to a file
+  main_fif.append(R"(     boc>B B>base64 $>B "debug" B>file)");   // write debug marks dictionary to a file
 
   std::stringstream fift_output_stream;
   TRY_RESULT(source_lookup, create_source_lookup(std::move(main_fif), true, true, false, false, false, false, false, fift_dir));
@@ -238,11 +239,13 @@ td::Result<CompiledProgramOutput> compile_asm_program(std::string&& program_code
 
   TRY_RESULT(boc, res.read_file("boc"));
   TRY_RESULT(hex, res.read_file("hex"));
+  TRY_RESULT(debug, res.read_file("debug"));
 
   return CompiledProgramOutput{
     std::move(program_code),
     std::move(boc.data),
     std::move(hex.data),
+    std::move(debug.data),
   };
 }
 

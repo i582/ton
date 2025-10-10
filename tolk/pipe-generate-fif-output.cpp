@@ -186,7 +186,11 @@ void pipeline_generate_fif_output_to_std_cout() {
     generate_output_func(fun_ref);
   }
 
-  std::cout << "}END>c\n";
+  if (G.settings.collect_source_map) {
+    std::cout << "}END>cd\n";
+  } else {
+    std::cout << "}END>c\n";
+  }
   if (!G.settings.boc_output_filename.empty()) {
     std::cout << "boc>B \"" << G.settings.boc_output_filename << "\" B>file\n";
   }

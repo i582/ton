@@ -87,6 +87,7 @@ static td::Result<std::string> compile_internal(char *config_json) {
   obj("fiftCode", fift_res.fiftCode);
   obj("codeBoc64", fift_res.codeBoc64);
   obj("codeHashHex", fift_res.codeHashHex);
+  obj("debugMarkBase64", fift_res.debugMarkBase64);
 
   if (const auto source_map = source_map_out.str(); !source_map.empty()) {
     // To correctly map Tolk code to TVM instructions, we also need to return the compiled code

@@ -1,8 +1,154 @@
+"Disasm.fif" include
+
 library TVM_Asm
 // simple TVM Assembler
 namespace Asm
 Asm definitions
 "0.4.6" constant asm-fif-version
+
+// The following code implements source maps for source code.
+// The high-level compiler can generate special DEBUGMARK instructions with the specified numeric identifier.
+// For example:
+//
+// DEBUGMARK 1
+// PUSHINT 1
+// DEBUGMARK 2
+// INC
+//
+// The following code will create a special dictionary that maps a cell's hash to an array of pairs:
+// 1. offset in the hash
+// 2. debug ID (from DEBUGMARK)
+//
+// This mapping can be further used to precisely map high-level code to bytecode instructions.
+
+// Stores mapping for current cell. Since this compiler always processes one cell at a time,
+// we can do this without problems. For handling nested cells, see @cell_marks_stack.
+//
+// builder with offset (16 bit), debug id (16 bit) pairs
+variable @current_cell_marks // = beginCell()
+<b @current_cell_marks !
+
+// Adds a new entry with offset and debug id to current debug marks builder.
+// Internal function used by DEBUGMARK to store debug mapping information.
+//
+// int int -> _
+{
+                          // key value
+  @current_cell_marks @   // key value builder
+  swap 16 u,              // key builder
+  swap 16 u,              // builder
+  @current_cell_marks !
+} : add-debug-mark
+
+
+// Since cell can be nested, we need a way to store previous marks and restore it.
+// This Lisp-style list stores all such builders.
+//
+// builder[]
+variable @cell_marks_stack // = null
+
+// Begin a new frame with an empty marks dictionary.
+// Saves current debug marks and starts a new empty marks builder for nested cells.
+//
+// _ -> _
+{
+   cr cr ."------------- NEW cell stack item -------------" cr
+
+   @cell_marks_stack @ @current_cell_marks @ cons  // push old builder onto the stack
+   @cell_marks_stack !
+   <b                    // builder
+   @current_cell_marks ! //
+} : push-cell-marks
+
+// End latest frame and restore previous marks dictionary.
+// Restores debug marks from stack after processing nested cell.
+//
+// _ -> _
+{
+   ."------------- POP cell stack item -------------" cr cr
+
+   @cell_marks_stack @ uncons  // remaining latest_builder
+   @current_cell_marks !       // remaining
+   @cell_marks_stack !         //
+} : pop-cell-marks
+
+
+// Global dictionary that maps a cell's hash to its debugging marks stored in the first reference of value slice.
+// Each data slice contains pairs of (offset: uint16, debug_id: uint16) for source mapping.
+//
+// map<uint256, slice>
+variable @cell_marks_dict // = null
+
+// Removes leading N-bits if they are zero.
+//
+// slice int -> slice
+{
+  swap      // int slice
+  dup sbits // int slice int
+  32        // int slice int 32
+  <         // int slice 0/-1
+            // int slice
+  {
+     nip    // slice
+  }
+  {
+     dup    // int slice slice
+     rot    // slice slice int
+     u@+    // slice int slice'
+     swap   // slice slice' int
+            // slice slice'
+     {  // not zero
+        drop // slice (unchanged slice)
+     }
+     { // zero
+        nip // slice' (slice without first 32 zero padding)
+     } cond
+  }
+  cond
+} : @cut-zeroes-if-present
+
+// Adds a new cell to @cell_marks_dict with key equal to the cell's hash and
+// value equal to the current debug mark builder (@current_cell_marks).
+// Used to store debug mapping information for each compiled cell.
+//
+// cell -> _
+{
+   cr ."############# REGISTER CELL: " dup .dump cr dup boc>B .dump cr
+
+   // For top level functions there is start 32-bit zero padding,
+   // we need to remove it in order to compute hash correctly.
+                                 // cell
+   <b                            // cell builder
+   swap                          // builder cell
+   <s                            // builder slice
+      32 @cut-zeroes-if-present  // builder slice'
+      s,                         // builder
+   b>                            // cell
+
+   // Get current builder with a debug marks and convert it to an empty
+   // cell with single ref with the builder data.
+                         // cell
+   @current_cell_marks @ // cell builder
+   <b swap b> ref, b> <s // cell slice
+
+   // Store cell marks cell to dictionary with code cell hash key.
+                         // cell slice
+   swap                  // slice cell
+   hashu                 // slice hash
+   @cell_marks_dict @    // slice hash Dict
+   256                   // slice hash Dict key-bits
+   udict!                // Dict 0/-1
+   drop                  // Dict
+   @cell_marks_dict !    //
+
+   null @current_cell_marks ! // clear marks dict
+} : add-cell-with-marks
+
+// Returns dictionary with all debug marks per cell.
+// Each entry maps cell hash to a slice containing debug mark pairs (offset, debug_id).
+//
+// _ -> Dict
+{ @cell_marks_dict @ } : get-marks-dict
 
 variable @atend
 variable @was-split
@@ -10,12 +156,50 @@ false @was-split !
 { "not in asm context" abort } @atend !
 { `normal eq? not abort"must be terminated by }>" } : @normal?
 { context@ @atend @ 2 { @atend ! context! @normal? } does @atend ! } : @pushatend
-{ @pushatend Asm <b } : <{
+{ @pushatend Asm ."<{" cr push-cell-marks <b } : <{
 { @atend @ execute } : @endblk
-{ false @was-split ! `normal @endblk } : }>
-{ }> b> } : }>c
+{ dup b> add-cell-with-marks ."}>" cr pop-cell-marks false @was-split ! `normal cr @endblk } : }>
+{ ."}>c" cr }> b> } : }>c
 { }>c <s } : }>s
-{ @atend @ 2 { true @was-split ! @atend ! rot b> ref, swap @endblk } does @atend ! <b } : @|
+{
+    @atend @
+    2
+    {
+        ."--- SPLIT" cr
+        true @was-split !
+        @atend ! // recover previous handler
+        rot
+        b> // Code of second part of the big chunk of code that we store in the ref
+
+        // get first part of splitted code and register it
+        over
+        b>
+        add-cell-with-marks ."SPLIT POP }>" cr pop-cell-marks
+
+//         dup
+//          boc>B .dump
+
+//         dup <s disasm
+//         .s
+//         dup add-cell-with-marks ."SPLIT POP }>" cr pop-cell-marks
+        ref,
+
+//         dup b>
+//         add-cell-with-marks ."SPLIT POP }>" cr pop-cell-marks
+//         dup b> add-cell-with-marks ."SPLIT POP }>" cr pop-cell-marks
+
+        swap
+//         ."here " .s cr
+        @endblk
+    } does @atend !
+
+    ."NOT ENOUGHT BITS OR REFS: " .s
+    dup disasm
+
+    // Start a new builder since new code cannot be placed in the current builder
+    ."@|" cr push-cell-marks
+    <b
+} : @|
 { @atend @ 3 { @atend ! 2swap rot execute } does @atend ! <b } : @doafter<{
 { over brembits <= } : @havebits
 { rot + -rot + swap } : pair+
@@ -261,9 +445,22 @@ x{83FF} @Defop PUSHNAN
 { <b x{84} s, swap 1- 8 u, @addopb } : PUSHPOW2DEC
 { <b x{85} s, swap 1- 8 u, @addopb } : PUSHNEGPOW2
 
-// special instruction for debugging purposes
-// doesn't exists in TVM
-{ <b x{F955} s, swap 16 u, @addopb } : DEBUGMARK
+// Special instruction for debugging purposes that marks current position in bytecode.
+// The debug_id is stored in the debug marks dictionary for source code mapping.
+// Doesn't exist in TVM, only used during compilation.
+//
+// debug_id -> _
+{
+                    // builder debug_id
+    over            // builder debug_id builder
+    bbits           // builder debug_id size (of the current builder)
+
+    2dup
+    ."PROCESS DEBUGMARK: " . . cr
+
+    swap            // builder size debug_id
+    add-debug-mark  // builder
+ } : DEBUGMARK
 
 //
 // other constants
@@ -1561,7 +1758,9 @@ Fift-wordlist dup @oldcurrent ! @oldctx !
     negate
     @was-split @ { drop 0 } if
   } if
-  @adj-long-proc over @procdict @ @procdictkeylen
+  @adj-long-proc
+  // dup <b swap s, b> add-cell-with-marks ."def proc" cr pop-cell-marks
+  over @procdict @ @procdictkeylen
   idict!+ not abort"cannot define procedure, redefined?"
   @procdict !  2 2 @procinfo~!
 } : @def-proc
@@ -1574,7 +1773,7 @@ Fift-wordlist dup @oldcurrent ! @oldctx !
 { @procdict @ @procdictkeylen idict@ abort"procedure already defined"
 } : @fail-ifdef
 { u@?+ { swap abort"first bits are not zeroes" } if } : @cut-zeroes
-{ over @fail-ifdef
+{ ."@PROC:<{" cr push-cell-marks over @fail-ifdef
   2 { rot @normal? rot b> <s @zcount @cut-zeroes swap @def-proc drop } does
   null swap @doafter<{ 0 @zcount u,
 } : @PROC:<{
@@ -1627,6 +1826,7 @@ forget @proclist  forget @proccnt
 { }END <{ SETCP0 swap @procdictkeylen DICTPUSHCONST DICTIGETJMPZ 11 THROWARG }> } : }END>
 { }END> b> } : }END>c
 { }END>c <s } : }END>s
+{ }END>c get-marks-dict swap } : }END>cd
 
 // This is the way how FunC assigns method_id for reserved functions.
 // Note, that Tolk entrypoints have other names (`onInternalMessage`, etc.),
