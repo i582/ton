@@ -129,8 +129,10 @@ typedef HashCtx<OpensslEVP_SHA512> SHA512;
 
 struct SHA256Tag {};
 
+#if TD_GCC
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 template <>
 struct HashCtx<SHA256Tag> {
@@ -178,7 +180,9 @@ struct HashCtx<SHA256Tag> {
   SHA256_CTX ctx_;
 };
 
+#if TD_GCC
 #pragma GCC diagnostic pop
+#endif
 
 typedef HashCtx<SHA256Tag> SHA256;
 
