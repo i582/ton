@@ -1,7 +1,15 @@
 import "@stdlib/tvm-dicts.tolk"
 
-struct A { a1: int7; a2: uint8; a3: uint8; }
-struct B { b1: int7; b2: uint8; b3: uint8; }
+struct A {
+    a1: int7;
+    a2: uint8;
+    a3: uint8;
+}
+struct B {
+    b1: int7;
+    b2: uint8;
+    b3: uint8;
+}
 type AOrB = A | B;
 
 @noinline
@@ -10,19 +18,37 @@ fun A.getA1(self) {
 }
 
 struct Fields9 {
-    f1: uint8; f2: uint8; f3: uint8;
-    f4: uint8; f5: uint8; f6: uint8;
-    f7: uint8; f8: uint8; f9: uint8;
+    f1: uint8;
+    f2: uint8;
+    f3: uint8;
+    f4: uint8;
+    f5: uint8;
+    f6: uint8;
+    f7: uint8;
+    f8: uint8;
+    f9: uint8;
 }
 
 @noinline
-fun Fields9.method(self) {}
+fun Fields9.method(self) {
+}
 
-fun Fields9.getF2(self) { return self.f2 }
-fun Fields9.getF5(self) { return self.f5 }
+fun Fields9.getF2(self) {
+    return self.f2
+}
 
-struct Small { s1: int7; }
-struct Big { b1: int7; b2: int8; b3: int8; }
+fun Fields9.getF5(self) {
+    return self.f5
+}
+
+struct Small {
+    s1: int7;
+}
+struct Big {
+    b1: int7;
+    b2: int8;
+    b3: int8;
+}
 type SmallOrBig = Small | Big;
 
 struct StructF1F2AB {
@@ -107,8 +133,12 @@ struct ComplexWithMaybePoint {
     f3: int8;
 }
 
-struct Counter7Increment { byValue: int7 }
-struct Counter7Decrement { byValue: int7 }
+struct Counter7Increment {
+    byValue: int7
+}
+struct Counter7Decrement {
+    byValue: int7
+}
 type MsgEitherCounter = Counter7Increment | Counter7Decrement;
 
 struct FieldsAndEitherCounter {
@@ -144,8 +174,14 @@ struct NotFixedWidthStorage {
     f11: coins;
 }
 
-struct Inner1 { i1: int8; i2: int8; }
-struct Inner2 { i1: int8; i2: int8; }
+struct Inner1 {
+    i1: int8;
+    i2: int8;
+}
+struct Inner2 {
+    i1: int8;
+    i2: int8;
+}
 type Inner2Alias = Inner2;
 struct Outer {
     inner1: Inner1;
@@ -166,29 +202,63 @@ struct WithRefs {
     f4: int8;
 }
 
-struct (0x01) CounterIncrement { byValue: int8 }
-struct (0x02) CounterDecrement { byValue: int8 }
-struct (0x03) CounterDecrementBy1 { }
-struct (0x04) CounterReset { initialValue: int32 }
+struct (0x01) CounterIncrement {
+    byValue: int8
+}
+struct (0x02) CounterDecrement {
+    byValue: int8
+}
+struct (0x03) CounterDecrementBy1 {
+}
+struct (0x04) CounterReset {
+    initialValue: int32
+}
 type MsgFullCounter = CounterIncrement | CounterDecrement | CounterDecrementBy1 | CounterReset;
 
-struct(0x12345678) Counter32Increment { byValue: int32; }
-struct(0x23456789) Counter32DecrementBy1 {}
-struct(0x34567890) Counter32Reset { initial: uint32; f2: int8; f3: int8; f4: int8; f5: int8; }
+struct (0x12345678) Counter32Increment {
+    byValue: int32;
+}
+struct (0x23456789) Counter32DecrementBy1 {
+}
+struct (0x34567890) Counter32Reset {
+    initial: uint32;
+    f2: int8;
+    f3: int8;
+    f4: int8;
+    f5: int8;
+}
 type MyMsg32 = Counter32Increment | Counter32DecrementBy1 | Counter32Reset;
 
-struct AutoP1 { f1: int8; f2: int8; }
-struct AutoP2 { f1: int8; f2: int8; f3: int8; }
+struct AutoP1 {
+    f1: int8;
+    f2: int8;
+}
+struct AutoP2 {
+    f1: int8;
+    f2: int8;
+    f3: int8;
+}
 struct AutoP3;
 type AutoPrefixedBin2 = AutoP1 | AutoP2 | AutoP3; // 00 / 01 / 10
 
-struct(0b0111) ShortP1 { f1: int8; }
-struct(0b0100) ShortP2 { f1: int8; f2: int8; }
+struct (0b0111) ShortP1 {
+    f1: int8;
+}
+struct (0b0100) ShortP2 {
+    f1: int8;
+    f2: int8;
+}
 type ShortPrefixed = ShortP1 | ShortP2;
 
-struct(0b01) NotEqPrefixedS1 { f: uint6; }
-struct(0b0001) NotEqPrefixedS2 { f: uint4; }
-struct(0b101) NotEqPrefixedS3 { f: int5; }
+struct (0b01) NotEqPrefixedS1 {
+    f: uint6;
+}
+struct (0b0001) NotEqPrefixedS2 {
+    f: uint4;
+}
+struct (0b101) NotEqPrefixedS3 {
+    f: int5;
+}
 type NotEqPrefixed = NotEqPrefixedS1 | NotEqPrefixedS2 | NotEqPrefixedS3;
 
 struct WithBitsField {
@@ -247,7 +317,9 @@ struct WithGlobalModifier {
     n: int8;
 }
 
-struct WithN5 { n: uint5 }
+struct WithN5 {
+    n: uint5
+}
 type U111 = int8 | int16 | WithN5 | bits100
 struct WithU111 {
     a: U111
@@ -255,8 +327,11 @@ struct WithU111 {
     bit: bool
 }
 fun WithU111.getSlice_a8_bnull(): slice asm "b{000000000101} PUSHSLICE"
+
 fun WithU111.getSlice_a16_b8(): slice asm "b{010000000000000001100000000011} PUSHSLICE"
+
 fun WithU111.getSlice_a8_b5(): slice asm "b{0000000001110111111} PUSHSLICE"
+
 fun WithU111.getSlice_a8_b5_nobit(): slice asm "b{000000000111011111} PUSHSLICE"
 
 struct Inner123 {
@@ -309,7 +384,9 @@ fun contract.getFakeData(seqno: int): Cell<WalletStorage> {
 }
 
 fun getPointCell(x: int, y: int): Cell<Point> {
-    val p: Point = {x,y};
+    val p: Point = {
+        x, y
+    };
     return p.toCell();
 }
 
@@ -356,8 +433,8 @@ fun demo103() {
 fun demo104() {
     var p2 = lazy Point.fromSlice(stringHexToSlice("0A14"));
     __expect_lazy("[p2] load x y");
-    assert(p2.x < 100) throw 100;
-    assert(p2.y < 100) throw 100;
+    assert (p2.x < 100) throw 100;
+    assert (p2.y < 100) throw 100;
 
     var c = lazy ComplexWithPoint.fromSlice(stringHexToSlice("01020304"));
     __expect_lazy("[c] load f1, skip (bits16), load f3");
@@ -395,8 +472,8 @@ fun demo108() {
     var o = lazy Fields9.fromSlice(stringHexToSlice("010203040506070809"));
     __expect_lazy("[o] load f1 f2 f3 f4 f5 f6 f7 f8 f9");
     {
-        assert(o.f3 == 3) throw 100;
-        assert(o.f9 == 9) throw 100;
+        assert (o.f3 == 3) throw 100;
+        assert (o.f9 == 9) throw 100;
     }
 
     var p = lazy Point.fromSlice(stringHexToSlice("0102"));
@@ -535,8 +612,12 @@ fun demo120(s: slice) {
     var t = createEmptyTuple();
     __expect_lazy("[msg] load f1, skip (bits8), lazy match c");
     match (msg.c) {
-        Counter7Increment => { t.push(+msg.c.byValue) }
-        Counter7Decrement => { t.push(-msg.c.byValue) }
+        Counter7Increment => {
+            t.push(+msg.c.byValue)
+        }
+        Counter7Decrement => {
+            t.push(-msg.c.byValue)
+        }
     }
     t.push(msg.f1);
     return t;
@@ -544,7 +625,11 @@ fun demo120(s: slice) {
 
 @method_id(121)
 fun demo121() {
-    var c = FieldsAndEitherCounter{f1:1, f2:2, c:Counter7Decrement{byValue:20}};
+    var c = FieldsAndEitherCounter{
+        f1: 1, f2: 2, c: Counter7Decrement{
+            byValue: 20
+        }
+    };
     var o = lazy FieldsAndEitherCounter.fromCell(c.toCell());
     __expect_lazy("[o] load f1 f2 c");      // load c, not lazy match
     return (o.c is Counter7Increment) ? o.f1 + o.c.byValue : o.f2 + o.c.byValue;
@@ -554,7 +639,7 @@ fun demo121() {
 fun demo122(s: slice): int | slice {
     var o = lazy FieldsAndEitherCounter.fromSlice(s);
     __expect_lazy("[o] load f1, skip (bits8), lazy match c");
-    return match(o.c) {
+    return match (o.c) {
         Counter7Decrement => -o.c.byValue,
         Counter7Increment => o.f1 + o.c.byValue,
     }
@@ -581,8 +666,10 @@ fun demo124(s: slice) {
             t.push(+mm.byValue)
         }
         Counter7Decrement => {
-            try {}
-            catch {}
+            try {
+            }
+            catch {
+            }
             var mm = msg.c;
             t.push(-mm.byValue);
             t.push(msg.f2);
@@ -594,7 +681,7 @@ fun demo124(s: slice) {
 @method_id(125)
 fun demo125() {
     var o = lazy StructF1F2AB.fromSlice(stringHexToSlice("7F200F0203"));
-    var (a1, a3, b2) = (-1,-1,-1);
+    var (a1, a3, b2) = (-1, -1, -1);
     __expect_lazy("[o] load f1 f2 ab");
     match (o.ab) {
         A => {
@@ -634,8 +721,12 @@ fun demo127() {
     var wa_is_A: bool;
     var wa_last: int;
     match (o.wa.ab) {
-        A => { wa_is_A = true;  __expect_lazy(""); wa_last = o.wa.ab.a3; }
-        B => { wa_is_A = false; __expect_lazy(""); wa_last = o.wa.ab.b3; }
+        A => {
+            wa_is_A = true;  __expect_lazy(""); wa_last = o.wa.ab.a3;
+        }
+        B => {
+            wa_is_A = false; __expect_lazy(""); wa_last = o.wa.ab.b3;
+        }
     }
     return (inner1_i1, inner1_i2, wa_is_A, wa_last);
 }
@@ -729,7 +820,9 @@ fun demo133() {
 
 @method_id(134)
 fun demo134() {
-    var cc = lazy CounterIncrement.fromSlice(stringHexToSlice("010f"), {throwIfOpcodeDoesNotMatch: 134});
+    var cc = lazy CounterIncrement.fromSlice(stringHexToSlice("010f"), {
+        throwIfOpcodeDoesNotMatch: 134
+    });
     return cc.byValue;
 }
 
@@ -786,10 +879,14 @@ fun demo139(s: slice, skip: bool): int {
     match (msg) {
         CounterIncrement => {
             try {
-                if (s.isEmpty()) { return 100; }
+                if (s.isEmpty()) {
+                    return 100;
+                }
                 __expect_lazy("[msg] load byValue");
                 return msg.byValue;
-            } catch (excno) { return excno }
+            } catch (excno) {
+                return excno
+            }
         }
         CounterReset => throw 123,
         CounterDecrementBy1 => throw 456,
@@ -811,10 +908,14 @@ fun demo140(getF4: bool) {
     if (getF4) {
         result = o.f4;
     } else {
-        match (o.ab) { A => throw 123, B => {
+        match (o.ab) {
+            A => throw 123, B => {
             result = o.ab.b2;
-        } }
-        if (o.f4 < 0) { result *= 100; }
+        }
+        }
+        if (o.f4 < 0) {
+            result *= 100;
+        }
     }
     return result;
 }
@@ -826,10 +927,16 @@ fun demo141(eval: bool): int {
         try {
             __expect_lazy("[o] load f1 f2, skip (bits24), lazy match ab");
             match (o.ab) {
-                A => { return o.f1 }
-                B => { throw o.f2 }
+                A => {
+                    return o.f1
+                }
+                B => {
+                    throw o.f2
+                }
             }
-        } catch(excno) { return excno * 100 }
+        } catch (excno) {
+            return excno * 100
+        }
     }
     throw 123;
 }
@@ -842,12 +949,18 @@ fun demo142(s: slice, ignore: bool) {
             try {
                 __expect_lazy("[o] skip (bits15), load a3");
                 return o.a3 as int;
-            } catch (excno) { return excno }
+            } catch (excno) {
+                return excno
+            }
         }
         B => {
-            if (ignore) { return -1; }
+            if (ignore) {
+                return -1;
+            }
             else {
-                if (ignore) { return -1; }
+                if (ignore) {
+                    return -1;
+                }
                 else {
                     __expect_lazy("[o] load b1");
                     return o.b1 * 1;
@@ -860,15 +973,27 @@ fun demo142(s: slice, ignore: bool) {
 @method_id(143)
 fun demo143(): int {
     val o = lazy WithEitherABEnd.fromSlice(stringHexToSlice("0809000000"));   // ab missing
-    try { try {
-        __expect_lazy("[o] load f1 f2, skip (bits24), lazy match ab");
+    try {
         try {
-            match (o.ab) {
-                A => { return 1 }
-                B => { return 2 }
+            __expect_lazy("[o] load f1 f2, skip (bits24), lazy match ab");
+            try {
+                match (o.ab) {
+                    A => {
+                        return 1
+                    }
+                    B => {
+                        return 2
+                    }
+                }
+            } catch {
+                throw o.f1 + o.f2
             }
-        } catch { throw o.f1 + o.f2 }
-    } catch(excno) { return excno } } catch { return -1 }
+        } catch (excno) {
+            return excno
+        }
+    } catch {
+        return -1
+    }
 }
 
 @method_id(144)
@@ -891,7 +1016,9 @@ fun demo145(getF5: bool): int {
             return p.getF5();
         }
         return 1 * p.getF2();
-    } catch { throw 123 }
+    } catch {
+        throw 123
+    }
 }
 
 @method_id(146)
@@ -904,13 +1031,15 @@ fun demo146() {
 @method_id(147)
 fun demo147() {
     val p = lazy WithRefs.fromSlice(stringHexToSlice("0000000"));
-    if (false) {} else {
-    try {
-        __expect_lazy("[p] skip (cell?) (bits8), load f4");
-        return (true, p.f4 as int);        // even though `r3` (Cell<Point>) doesn't exist, it's ignored to reach `f4`
-    } catch (excno) {
-        return (false, excno);
-    }}
+    if (false) {
+    } else {
+        try {
+            __expect_lazy("[p] skip (cell?) (bits8), load f4");
+            return (true, p.f4 as int);        // even though `r3` (Cell<Point>) doesn't exist, it's ignored to reach `f4`
+        } catch (excno) {
+            return (false, excno);
+        }
+    }
 }
 
 @method_id(148)
@@ -966,7 +1095,9 @@ fun demo151() {
 
 @method_id(152)
 fun demo152() {
-    val c = OneIntOneRef { o: createEmptyCell(), r: (2 as int32).toCell() }.toCell();
+    val c = OneIntOneRef {
+        o: createEmptyCell(), r: (2 as int32).toCell()
+    }.toCell();
     val st = lazy c.load();
     __expect_lazy("[st] skip (cell?) (cell), load r");
     return st.r.beginParse().remainingBitsCount();
@@ -974,7 +1105,9 @@ fun demo152() {
 
 @method_id(153)
 fun demo153() {
-    val c = OneIntOneRef { o: createEmptyCell(), r: (2 as int32).toCell() }.toCell();
+    val c = OneIntOneRef {
+        o: createEmptyCell(), r: (2 as int32).toCell()
+    }.toCell();
     val st = lazy c.load();
     __expect_lazy("[st] skip (cell?), load i");
     return st.i;
@@ -983,7 +1116,9 @@ fun demo153() {
 global gTup: tuple;
 
 @noinline
-fun pushToGlobalTup<T>(v: T) { gTup.push(v.toTuple()); }
+fun pushToGlobalTup<T>(v: T) {
+    gTup.push(v.toTuple());
+}
 
 @method_id(154)
 fun demo154() {
@@ -1005,7 +1140,9 @@ fun demo155() {
     inlinedFunctionWithLazy(stringHexToSlice("0304"));
     try {
         inlinedFunctionWithLazy(stringHexToSlice("03FF"));
-    } catch (excno) { return excno; }
+    } catch (excno) {
+        return excno;
+    }
     return -1;
 }
 
@@ -1026,7 +1163,9 @@ fun demo156(s: slice): int {
 
 @method_id(157)
 fun demo157() {
-    var c: Cell<WithVariadicInts> = WithVariadicInts { i1: 1 << 100, i2: 1 << 200 }.toCell();
+    var c: Cell<WithVariadicInts> = WithVariadicInts {
+        i1: 1 << 100, i2: 1 << 200
+    }.toCell();
     val d = lazy c.load();
     return d.i2 == (1 << 200);
 }
@@ -1054,14 +1193,16 @@ fun demo159() {
     val p3_bit = p3.bit;
     val p4_b = p4.b;
 
-    return (p1_bit, p2_bit, (p3.b is WithN5) ? p3.b.n as int : 777, p3_bit, (p4_b is WithN5) ? p4_b.n as int: 777);
+    return (p1_bit, p2_bit, (p3.b is WithN5) ? p3.b.n as int : 777, p3_bit, (p4_b is WithN5) ? p4_b.n as int : 777);
 }
 
 @method_id(160)
 fun demo160() {
     try {
         // wrong opcode for CounterIncrement
-        var o = lazy OuterWithInner.fromSlice(stringHexToSlice("0000991122FF"), {throwIfOpcodeDoesNotMatch: 777});
+        var o = lazy OuterWithInner.fromSlice(stringHexToSlice("0000991122FF"), {
+            throwIfOpcodeDoesNotMatch: 777
+        });
         __expect_lazy("[o] skip (bits16) (CounterIncrement), load y");     // not skip (bits24)
         return o.y as int;
     } catch (excno) {
@@ -1074,7 +1215,7 @@ fun demo160() {
 fun demo200() {
     var st = lazy WalletStorage.fromCell(contract.getFakeData(888));
     var b = beginCell();
-    if (10>3) {
+    if (10 > 3) {
         __expect_lazy("[st] load isSignatureAllowed seqno walletId publicKey extensions");
         assert(st.isSignatureAllowed, 123);
         b.storeAny(st);
@@ -1148,7 +1289,11 @@ fun demo204() {
 fun demo205() {
     var o = lazy WithMaybe.fromSlice(stringHexToSlice("551_"));
     __expect_lazy("[o] save immutable (tail), skip (bits8), load big");
-    match (o.big) { null => {} Big => {} }
+    match (o.big) {
+        null => {
+        } Big => {
+    }
+    }
     return o.toCell().beginParse().bitsEqual(stringHexToSlice("551_"));
 }
 
@@ -1180,10 +1325,10 @@ fun demo208(s: slice) {
         A => {
             __expect_lazy("[o] load a1 a2 a3");
             var bc = o.toCell().beginParse().remainingBitsCount();
-            return (bc, (o as A|B).toCell().beginParse().remainingBitsCount());
+            return (bc, (o as A | B).toCell().beginParse().remainingBitsCount());
         }
         B => {
-            assert(10>3, 101);
+            assert(10 > 3, 101);
             __expect_lazy("[o] load b1 b2 b3");     // loaded because of toCell
             return (o.b1 as int, o.toCell().hash() as int);
         }
@@ -1239,11 +1384,11 @@ fun demo212() {
 @method_id(213)
 fun demo213(eval: bool) {
     var c = lazy ComplexWithPoint.fromSlice(stringHexToSlice("01080903FFFF"));  // more than needed
-    if (eval && 10>3) {
+    if (eval && 10 > 3) {
         __expect_lazy("[c] load (bits8) p, save immutable (tail)");
         c.p.y += 2;
         var s = c.toCell().beginParse();
-        return (s.remainingBitsCount(), s.skipBits(8+8).preloadUint(8));
+        return (s.remainingBitsCount(), s.skipBits(8 + 8).preloadUint(8));
     } else {
         throw 123;
     }
@@ -1287,7 +1432,9 @@ fun demo218() {
     var o = lazy WithRefs.fromCell(WithRefs {
         r1: (1 as int32).toCell(),
         f2: 2,
-        r3: Point{x: 10, y: 20}.toCell(),
+        r3: Point{
+            x: 10, y: 20
+        }.toCell(),
         f4: 4,
     }.toCell());
     __expect_lazy("[o] load (cell?) f2, save immutable (tail), load r3");
@@ -1375,7 +1522,7 @@ fun demo307() {
     var p = lazy Point.fromSlice(stringHexToSlice("0102"));
     __expect_lazy("[p] load x y");
     var cc = (p as PointOrPoint3d).toCell();
-    assert(cc.beginParse().remainingBitsCount() == 1+8+8, 100);
+    assert(cc.beginParse().remainingBitsCount() == 1 + 8 + 8, 100);
     return cc.hash();
 }
 
@@ -1385,7 +1532,7 @@ fun demo308() {
     __expect_lazy("[p] load x y");
     var cc = (p as PointOrPoint3d).toCell();
     var ll = lazy cc.load();
-    assert(cc.beginParse().remainingBitsCount() == 1+8+8, 100);
+    assert(cc.beginParse().remainingBitsCount() == 1 + 8 + 8, 100);
     __expect_lazy("[ll] lazy match");
     match (ll) {
         Point => {
@@ -1423,12 +1570,16 @@ fun demo310() {
         f9: createEmptySlice() as bits200,
         f10: ("".literalSlice() as bits400, ()),
         f11: 0,
-    }.toCell({skipBitsNValidation: true});
+    }.toCell({
+        skipBitsNValidation: true
+    });
     var st = lazy cell.load();
     var sm = lazy cell.load();
     var sk = lazy cell.load();
     __expect_lazy("[st] load (bits8) (int8?) (bits9) (cell) f6, save immutable (tail), skip (any_address), load f8");
-    match (st.f6) { int8 => st.f6 += 90, bool => throw 123 };
+    match (st.f6) {
+        int8 => st.f6 += 90, bool => throw 123
+    };
     __expect_lazy("[sm] load f5");
     sm.f5;  // previous (data-only) fields are not needed to reach a ref
     __expect_lazy("[sk] skip (bits8) (int8?) (bits9) (int8 | bool), load f7");
@@ -1452,7 +1603,7 @@ fun demo312() {
     var st = lazy WithInternalAddress.fromCell(correct);
     __expect_lazy("[st] skip (bits8) (address), load f3");
     val f3 = st.f3;
-    
+
     val wrong = beginCell().storeInt(0, 8).storeAddressNone().storeAddress(addr).storeInt(-1, 8).endCell();
     var st2 = lazy WithInternalAddress.fromCell(wrong);
     // check that `address` (st2.f2) is validated even though unused
@@ -1465,7 +1616,9 @@ fun demo312() {
 
 @method_id(313)
 fun demo313() {
-    val c = WithTensorOfInt8{ t: (11, 12, 13) }.toCell();
+    val c = WithTensorOfInt8{
+        t: (11, 12, 13)
+    }.toCell();
 
     var lazyS = lazy WithTensorOfInt8.fromCell(c);
     __expect_lazy("[lazyS] load t, save immutable (tail)");
@@ -1478,7 +1631,9 @@ fun demo313() {
 fun demo314() {
     val c = WithShape{
         sh0: [8, (8, 8)],
-        sh1: [8, { x: 10, y: 20 }]
+        sh1: [8, {
+            x: 10, y: 20
+        }]
     }.toCell();
 
     var lazyS1 = lazy WithShape.fromCell(c);
@@ -1501,7 +1656,9 @@ fun demo315() {
     var lazyS = lazy WithTensorAndUnionInside.fromCell(c);
     __expect_lazy("[lazyS] load (bits8) tens, save immutable (tail)");
     match (lazyS.tens.1) {
-        int16 => { lazyS.tens.1 += 50 }
+        int16 => {
+            lazyS.tens.1 += 50
+        }
         address => throw 123
     }
 
@@ -1510,9 +1667,15 @@ fun demo315() {
 
 @method_id(316)
 fun demo316() {
-    var p1 = lazy Point3d{ x: 2, y: 3, z: 99 }.toCell().load();
-    var p2 = lazy Point3d{ x: 2, y: 3, z: 99 }.toCell().load();
-    var p3 = lazy Point3d{ x: 2, y: 3, z: 99 }.toCell().load();
+    var p1 = lazy Point3d{
+        x: 2, y: 3, z: 99
+    }.toCell().load();
+    var p2 = lazy Point3d{
+        x: 2, y: 3, z: 99
+    }.toCell().load();
+    var p3 = lazy Point3d{
+        x: 2, y: 3, z: 99
+    }.toCell().load();
     __expect_lazy("[p1] load x y z");
     val cp1 = (p1 = p1).toCell().load();
     __expect_lazy("[p2] load x y z");
@@ -1583,13 +1746,19 @@ fun demo401(s: slice, fakeHandle: bool) {
 @method_id(402)
 fun demo402(s: slice) {
     try {
-        val msg = lazy MsgFullCounter.fromSlice(s, {throwIfOpcodeDoesNotMatch: 0xFFFF});
+        val msg = lazy MsgFullCounter.fromSlice(s, {
+            throwIfOpcodeDoesNotMatch: 0xFFFF
+        });
         __expect_lazy("[msg] lazy match");
         match (msg) {
-            CounterDecrementBy1 => {}
-            CounterReset => {}
-            CounterDecrement => {}
-            CounterIncrement => {}
+            CounterDecrementBy1 => {
+            }
+            CounterReset => {
+            }
+            CounterDecrement => {
+            }
+            CounterIncrement => {
+            }
             // without else, 0xFFFF is thrown by default
         }
         return 0;
@@ -1621,7 +1790,9 @@ fun demo403(s: slice) {
 
 @method_id(404)
 fun demo404(s: slice) {
-    var msg = lazy MyMsg32.fromSlice(s, {throwIfOpcodeDoesNotMatch: 0xFFFF});
+    var msg = lazy MyMsg32.fromSlice(s, {
+        throwIfOpcodeDoesNotMatch: 0xFFFF
+    });
     var curCounter = 10;
     __expect_lazy("[msg] lazy match");
     match (msg) {
@@ -1651,23 +1822,27 @@ fun demo404(s: slice) {
 @method_id(405)
 fun demo405(s: slice) {
     var sum = 0;
-    try { var msg = lazy AutoPrefixedBin2.fromSlice(s); match (msg) {
-        AutoP3 => {
-            sum = -1;
-        }
-        AutoP1 => {
-            __expect_lazy("[msg] load f1 f2");
-            sum = msg.f1 + msg.f2;
-        }
-        AutoP2 => {
-            __expect_lazy("[msg] load f1 f2 f3");
-            sum = msg.f1;
-            sum += msg.f2;
-            if (sum > 0) {
-                sum += msg.f3;
+    try {
+        var msg = lazy AutoPrefixedBin2.fromSlice(s); match (msg) {
+            AutoP3 => {
+                sum = -1;
+            }
+            AutoP1 => {
+                __expect_lazy("[msg] load f1 f2");
+                sum = msg.f1 + msg.f2;
+            }
+            AutoP2 => {
+                __expect_lazy("[msg] load f1 f2 f3");
+                sum = msg.f1;
+                sum += msg.f2;
+                if (sum > 0) {
+                    sum += msg.f3;
+                }
             }
         }
-    } } catch { sum = -2 }
+    } catch {
+        sum = -2
+    }
     return sum;
 }
 
@@ -1675,18 +1850,22 @@ fun demo405(s: slice) {
 @method_id(406)
 fun demo406(s: slice) {
     try {
-    match (val msg = lazy ShortPrefixed.fromSlice(s)) {
-        ShortP1 => {
-            return 1;
+        match (val msg = lazy ShortPrefixed.fromSlice(s)) {
+            ShortP1 => {
+                return 1;
+            }
+            ShortP2 => {
+                __expect_lazy("[msg] skip (bits8), load f2");
+                var sum = 2 + msg.f2;
+                return sum;
+            }
+            else => {
+                throw 9999;
+            }
         }
-        ShortP2 => {
-            __expect_lazy("[msg] skip (bits8), load f2");
-            var sum = 2 + msg.f2;
-            return sum;
-        }
-        else => { throw 9999; }
+    } catch (excno) {
+        return excno
     }
-    } catch(excno) { return excno }
 }
 
 @method_id(407)
@@ -1703,7 +1882,7 @@ fun demo407(s: slice): int {
 fun demo408() {
     var o = lazy Outer.fromSlice(stringHexToSlice("0102030408FF7FFFFF"));
     __expect_lazy("[o] skip (bits16), load inner2 wa");
-    if (10>3) {
+    if (10 > 3) {
         o.inner2.i2 = 10;
     }
     return o.wa.ab.toCell().beginParse().remainingBitsCount();
@@ -1725,11 +1904,21 @@ fun demo410(s: slice) {
     val msg = lazy MsgFullCounter.fromSlice(s);
     // via codegen, check that "return" is implicitly added, and IFJMP is generated
     match (msg) {
-        CounterIncrement => { debug.print(1) }
-        CounterDecrement => { debug.dumpStack() }
-        CounterReset => { random.setSeed(10) }
-        CounterDecrementBy1 => { reserveToncoinsOnBalance(10, 1) }
-        else => { /* do nothing, "just accept tons" */ }
+        CounterIncrement => {
+            debug.print(1)
+        }
+        CounterDecrement => {
+            debug.dumpStack()
+        }
+        CounterReset => {
+            random.setSeed(10)
+        }
+        CounterDecrementBy1 => {
+            reserveToncoinsOnBalance(10, 1)
+        }
+        else => {
+            /* do nothing, "just accept tons" */
+        }
     }
 }
 
@@ -1738,8 +1927,12 @@ fun demo411(s: slice) {
     val msg = lazy AOrB.fromSlice(s);
     // the same, but for either
     match (msg) {
-        A => { debug.print(1) }
-        B => { debug.dumpStack() }
+        A => {
+            debug.print(1)
+        }
+        B => {
+            debug.dumpStack()
+        }
     }
 }
 
@@ -1754,7 +1947,9 @@ fun demo412() {
 @method_id(413)
 fun demo413() {
     val c = Outer123{
-        opt: { x: 11, y: 12 },
+        opt: {
+            x: 11, y: 12
+        },
     }.toCell();
 
     var o1 = lazy c.load();
@@ -1765,13 +1960,15 @@ fun demo413() {
     }
     __expect_lazy("[o2] load opt");
     o2.opt!.y = 99;
-    return (o1.toCell().load(), o2.toCell().load());    
+    return (o1.toCell().load(), o2.toCell().load());
 }
 
 @method_id(414)
 fun demo414(setObj: bool) {
     val c = Outer124{
-        opt: setObj ? { x: 11, y: 12 } : 80,
+        opt: setObj ? {
+            x: 11, y: 12
+        } : 80,
     }.toCell();
 
     var o1 = lazy c.load();
