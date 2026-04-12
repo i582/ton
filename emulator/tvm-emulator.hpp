@@ -31,6 +31,10 @@ public:
     missing_library_handler = {ctx, callback};
   }
 
+  void register_vm_event_handler(void* ctx, emulator_vm_event_func callback) {
+    args_.set_vm_event_handler(vm::VmEventHandler{ctx, callback});
+  }
+
   void set_vm_verbosity_level(int vm_log_verbosity) {
     args_.set_vm_verbosity_level(vm_log_verbosity);
   }
@@ -114,6 +118,7 @@ public:
     auto gas = args_.limits ? args_.limits.unwrap() : vm::GasLimits{1000000, 1000000};
 
     vm::VmLog log{logger.get(), td::LogOptions(VERBOSITY_NAME(DEBUG), true, false)};
+    log.event_handler = args_.vm_event_handler;
 
     auto state = smc_.get_state();
     int global_version = args_.config ? args_.config.value()->get_global_version() : ton::SUPPORTED_VERSION;

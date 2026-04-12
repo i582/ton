@@ -18,6 +18,7 @@ class TransactionEmulator {
   bool ignore_chksig_;
   bool debug_enabled_;
   td::Ref<vm::Tuple> prev_blocks_info_;
+  vm::VmEventHandler vm_event_handler_{};
 
   // Emulation state that persists throughout execution
 
@@ -117,6 +118,9 @@ public:
   void set_libs(vm::Dictionary &&libs);
   void set_debug_enabled(bool debug_enabled);
   void set_prev_blocks_info(td::Ref<vm::Tuple> prev_blocks_info);
+  void register_vm_event_handler(void *ctx, emulator_vm_event_func callback) {
+    vm_event_handler_ = vm::VmEventHandler{ctx, callback};
+  }
 
 private:
   bool check_state_update(const block::Account& account, const block::gen::Transaction::Record& trans);

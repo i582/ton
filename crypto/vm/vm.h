@@ -139,6 +139,10 @@ class VmState final : public VmStateInterface {
    */
   td::optional<int> uncaught_exception_code;
 
+  void emit_position_event(const Ref<CellSlice>& code_slice) const;
+  void emit_instruction_event(emulator_vm_event_type type, td::Slice instr_name) const;
+  void emit_exception_event(emulator_vm_event_type type, int errno_value) const;
+
  public:
   ExtMethods ext_methods;
   MissingLibraryHandler missing_library_handler;
@@ -293,6 +297,7 @@ class VmState final : public VmStateInterface {
   }
   void set_uncaught_exception_code(int excno) {
     uncaught_exception_code = excno;
+    emit_exception_event(EMULATOR_VM_EVENT_EXCEPTION_HANDLER, excno);
   }
   Stack& get_stack() {
     return stack.write();

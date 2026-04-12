@@ -42,6 +42,7 @@ td::Result<> TransactionEmulator::prepare_emulation(block::Account& account, ton
     compute_phase_cfg.vm_log_verbosity = vm_log_verbosity_;
     compute_phase_cfg.ext_methods = ext_methods;
     compute_phase_cfg.missing_library_handler = missing_library_handler;
+    compute_phase_cfg.vm_event_handler = vm_event_handler_;
     return td::Unit{};
 }
 

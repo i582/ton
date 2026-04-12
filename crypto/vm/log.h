@@ -18,6 +18,7 @@
 */
 #pragma once
 
+#include "vm/events.h"
 #include "td/utils/logging.h"
 
 #define VM_LOG_IMPL(st, mask)                                                             \
@@ -28,11 +29,27 @@
 #define VM_LOG_MASK(st, mask) VM_LOG_IMPL(st, mask)
 
 namespace vm {
+struct VmEventHandler {
+  void *ctx{nullptr};
+  emulator_vm_event_func callback{nullptr};
+
+  explicit operator bool() const {
+    return callback != nullptr;
+  }
+
+  void emit(const emulator_vm_event &event) const {
+    if (callback != nullptr) {
+      callback(ctx, &event);
+    }
+  }
+};
+
 struct VmLog {
   td::LogInterface *log_interface{td::log_interface};
   td::LogOptions log_options{td::log_options};
   enum { DumpStack = 2, ExecLocation = 4, GasRemaining = 8, DumpStackVerbose = 16, DumpC5 = 32 };
   int log_mask{1};
+  VmEventHandler event_handler{};
   static VmLog Null() {
     VmLog res;
     res.log_options.level = 0;

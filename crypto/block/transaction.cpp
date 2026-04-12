@@ -1913,6 +1913,7 @@ std::optional<Transaction::PrepareComputePhaseResult> Transaction::prepare_compu
 
   std::unique_ptr<StringLoggerTail> logger;
   auto vm_log = vm::VmLog();
+  vm_log.event_handler = cfg.vm_event_handler;
   if (cfg.with_vm_log) {
     size_t log_max_size = 256;
     if (cfg.vm_log_verbosity > 4) {

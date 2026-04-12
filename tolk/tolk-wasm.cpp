@@ -89,16 +89,21 @@ static td::Result<std::string> compile_internal(char *config_json) {
   G_settings.allow_no_entrypoint = allow_no_entrypoint;
 
   std::ostringstream errs;
-  std::streambuf* old_err = std::cerr.rdbuf(errs.rdbuf());
+  // Disabled temporarily: redirecting std::cerr here is not thread-safe.
+  std::streambuf* old_err = nullptr;
 
   TolkCompilationResult result = tolk_proceed(entrypoint_filename);
   if (!result.fatal_msg.empty()) {
-    std::cerr.rdbuf(old_err);
+    if (old_err) {
+      std::cerr.rdbuf(old_err);
+    }
     // no location or errors in json, just a message "fatal", something unexpected happened
     return td::Status::Error(td::Slice(result.fatal_msg.c_str()));
   }
   if (!result.errors.empty()) {
-    std::cerr.rdbuf(old_err);
+    if (old_err) {
+      std::cerr.rdbuf(old_err);
+    }
     // regular response with a list of compilation errors
     std::ostringstream result_json_str;
     JsonPrettyOutput json(result_json_str);
@@ -115,7 +120,9 @@ static td::Result<std::string> compile_internal(char *config_json) {
 
   // for IDE in background: all checks passed, skip codegen
   if (G_settings.check_only_no_output) {
-    std::cerr.rdbuf(old_err);
+    if (old_err) {
+      std::cerr.rdbuf(old_err);
+    }
     std::ostringstream result_json_str;
     JsonPrettyOutput json(result_json_str);
     json.start_object();
@@ -125,7 +132,9 @@ static td::Result<std::string> compile_internal(char *config_json) {
     return result_json_str.str();
   }
 
-  std::cerr.rdbuf(old_err);
+  if (old_err) {
+    std::cerr.rdbuf(old_err);
+  }
 
   // an external wrapper should handle not only `@stdlib/`, but also `@fiftlib/`;
   // in tolk-js particularly, .fif files are embedded into distribution, next to tolk-stdlib/ folder

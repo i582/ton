@@ -86,6 +86,7 @@ class SmartContract : public td::CntObject {
 
     vm::ExtMethods ext_methods = {};
     vm::MissingLibraryHandler missing_library_handler = {};
+    vm::VmEventHandler vm_event_handler = {};
 
     Args() {
     }
@@ -110,6 +111,10 @@ class SmartContract : public td::CntObject {
     }
     Args&& set_missing_library_handler(vm::MissingLibraryHandler missing_library_handler) {
       this->missing_library_handler = missing_library_handler;
+      return std::move(*this);
+    }
+    Args&& set_vm_event_handler(vm::VmEventHandler vm_event_handler) {
+      this->vm_event_handler = vm_event_handler;
       return std::move(*this);
     }
     Args&& set_limits(vm::GasLimits limits) {

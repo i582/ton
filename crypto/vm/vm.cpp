@@ -55,6 +55,42 @@ VmState::VmState(Ref<CellSlice> _code, int global_version, Ref<Stack> _stack, co
   init_cregs(flags & 1, flags & 2);
 }
 
+void VmState::emit_position_event(const Ref<CellSlice>& code_slice) const {
+  if (!log.event_handler || code_slice.is_null()) {
+    return;
+  }
+
+  const auto cell_hash = code_slice->get_base_cell()->get_hash().to_hex();
+  emulator_vm_event event{};
+  event.type = EMULATOR_VM_EVENT_POSITION;
+  event.cell_hash = cell_hash.c_str();
+  event.offset = code_slice->cur_pos();
+  log.event_handler.emit(event);
+}
+
+void VmState::emit_instruction_event(emulator_vm_event_type type, td::Slice instr_name) const {
+  if (!log.event_handler) {
+    return;
+  }
+
+  const auto owned_instr_name = instr_name.str();
+  emulator_vm_event event{};
+  event.type = type;
+  event.instr_name = owned_instr_name.c_str();
+  log.event_handler.emit(event);
+}
+
+void VmState::emit_exception_event(emulator_vm_event_type type, int errno_value) const {
+  if (!log.event_handler) {
+    return;
+  }
+
+  emulator_vm_event event{};
+  event.type = type;
+  event.errno_value = errno_value;
+  log.event_handler.emit(event);
+}
+
 void VmState::init_cregs(bool same_c3, bool push_0) {
   cr.set_c0(quit0);
   cr.set_c1(quit1);
@@ -384,6 +420,7 @@ Ref<OrdCont> VmState::extract_cc(int save_cr, int stack_copy, int cc_args) {
 int VmState::throw_exception(int excno, bool add_vm_log) {
   if (add_vm_log) {   // it's true for THROW / THROWIFNOT / etc. (exceptions from contract's code)
     VM_LOG(this) << "handling exception code " << excno << ": " << "custom THROW";
+    emit_exception_event(EMULATOR_VM_EVENT_EXCEPTION, excno);
   }
   Stack& stack_ref = get_stack();
   stack_ref.clear();
@@ -396,6 +433,7 @@ int VmState::throw_exception(int excno, bool add_vm_log) {
 
 int VmState::throw_exception(int excno, StackEntry&& arg) {
   VM_LOG(this) << "handling exception code " << excno << ": " << "custom THROW";
+  emit_exception_event(EMULATOR_VM_EVENT_EXCEPTION, excno);
   Stack& stack_ref = get_stack();
   stack_ref.clear();
   stack_ref.push(std::move(arg));
@@ -455,24 +493,53 @@ int VmState::step() {
   }
   ++steps;
   if (code->size()) {
+    emit_position_event(code);
+    std::string instr_name;
+    if (dispatch != nullptr) {
+      auto code_slice = code->clone();
+      instr_name = dispatch->dump_instr(code_slice);
+      emit_instruction_event(EMULATOR_VM_EVENT_BEFORE_INSTRUCTION, instr_name);
+    }
     VM_LOG_MASK(this, vm::VmLog::ExecLocation)
         << "code cell hash: " << code->get_base_cell()->get_hash().to_hex() << " offset: " << code->cur_pos();
-    return dispatch->dispatch(this, code.write());
+    int res = dispatch->dispatch(this, code.write());
+    if (!instr_name.empty()) {
+      emit_instruction_event(EMULATOR_VM_EVENT_AFTER_INSTRUCTION, instr_name);
+    }
+    return res;
   } else if (code->size_refs()) {
+    emit_position_event(code);
     VM_LOG_MASK(this, vm::VmLog::ExecLocation)
         << "code cell hash: " << code->get_base_cell()->get_hash().to_hex() << " offset: " << code->cur_pos();
+    if (log.event_handler) {
+      emulator_vm_event event{};
+      event.type = EMULATOR_VM_EVENT_IMPLICIT_JMPREF;
+      log.event_handler.emit(event);
+    }
     VM_LOG(this) << "execute implicit JMPREF";
     auto ref_cell = code->prefetch_ref();
+    if (log.event_handler) {
+      const auto cell_hash = ref_cell->get_hash().to_hex();
+      emulator_vm_event event{};
+      event.type = EMULATOR_VM_EVENT_POSITION;
+      event.cell_hash = cell_hash.c_str();
+      event.offset = 0;
+      log.event_handler.emit(event);
+    }
     VM_LOG_MASK(this, vm::VmLog::ExecLocation) << "code cell hash: " << ref_cell->get_hash().to_hex() << " offset: 0";
     consume_gas_chk(implicit_jmpref_gas_price);
     Ref<Continuation> cont = Ref<OrdCont>{true, load_cell_slice_ref(std::move(ref_cell)), get_cp()};
     return jump(std::move(cont));
   } else {
+    emit_position_event(code);
+    emit_instruction_event(EMULATOR_VM_EVENT_BEFORE_INSTRUCTION, "implicit RET");
     VM_LOG_MASK(this, vm::VmLog::ExecLocation)
         << "code cell hash: " << code->get_base_cell()->get_hash().to_hex() << " offset: " << code->cur_pos();
     VM_LOG(this) << "execute implicit RET";
     consume_gas_chk(implicit_ret_gas_price);
-    return ret();
+    int res = ret();
+    emit_instruction_event(EMULATOR_VM_EVENT_AFTER_INSTRUCTION, "implicit RET");
+    return res;
   }
 }
 
@@ -536,6 +603,7 @@ int VmState::run_step() {
     }
   } catch (const VmError& vme) {
     VM_LOG(this) << "handling exception code " << vme.get_errno() << ": " << vme.get_msg();
+    emit_exception_event(EMULATOR_VM_EVENT_EXCEPTION, vme.get_errno());
     try {
       ++steps;
       res = throw_exception(vme.get_errno(), false);    // no VM_LOG: just done above

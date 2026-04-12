@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include "emulator_export.h"
+#include "vm/events.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -120,6 +121,16 @@ EMULATOR_EXPORT const char *tvm_emulator_register_missing_library_callback(
     void *tvm_emulator,
     void *ctx,
     missing_library_func callback
+);
+EMULATOR_EXPORT const char *transaction_emulator_register_vm_event_callback(
+    void *transaction_emulator,
+    void *ctx,
+    emulator_vm_event_func callback
+);
+EMULATOR_EXPORT const char *tvm_emulator_register_vm_event_callback(
+    void *tvm_emulator,
+    void *ctx,
+    emulator_vm_event_func callback
 );
 
 /**

@@ -5,7 +5,6 @@
 #include "td/utils/optional.h"
 #include "StringLog.h"
 #include "tvm-emulator.hpp"
-
 #include <iostream>
 #include "crypto/common/bitstring.h"
 
@@ -392,7 +391,8 @@ void *create_tvm_emulator(const char *params) {
 const char *run_get_method(void* tvm, const char *params, const char* stack, const char* config) {
     // DEBUG instruction outputs values in stderr, redirect this output to return it to user
     std::ostringstream errs;
-    std::streambuf* old_err = std::cerr.rdbuf(errs.rdbuf());
+    // Disabled temporarily: redirecting std::cerr here is not thread-safe.
+    std::streambuf* old_err = nullptr;
 
     auto decoded_params_res = decode_get_method_params(params);
     if (decoded_params_res.is_error()) {
@@ -414,7 +414,9 @@ const char *run_get_method(void* tvm, const char *params, const char* stack, con
     auto res = tvm_emulator_run_get_method(tvm, decoded_params.method_id, stack);
 
     std::string debug_logs = errs.str();
-    std::cerr.rdbuf(old_err);
+    if (old_err) {
+        std::cerr.rdbuf(old_err);
+    }
 
     const char* output = nullptr;
     {
