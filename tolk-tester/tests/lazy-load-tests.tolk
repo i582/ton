@@ -86,16 +86,6 @@ struct Point3d {
     z: int32;
 }
 
-struct StorageWithTail {
-    a: uint8
-    b: uint8?
-    c: uint8?
-}
-
-fun StorageWithTail.makeCell(self) {
-    return self.toCell();
-}
-
 type PointOrPoint3d = Point | Point3d;
 
 struct Point78ForMaybe {
@@ -726,7 +716,7 @@ fun demo133() {
         extensions,
     }.toCell();
     if (10 > 3) {
-        var st = lazy Cell<WalletStorage>.load(wCell);
+        var st = lazy wCell.load();
         __expect_lazy("[st] skip (bits321), load extensions");
         while (!false) {
             assert(st.extensions != null, 123);
@@ -1098,14 +1088,6 @@ fun demo162(delta: int) {
     return f(delta);
 }
 
-@method_id(163)
-fun demo163(nSkip: int) {
-    var o = lazy WithOneRestField.fromSlice("00000001F0F1".hexToSlice());
-    __expect_lazy("[o] skip (bits32), load rest");
-    var x = o.rest.loadUint(8);
-    return (x, (o.rest.skipBits(nSkip), o.rest.remainingBitsCount()).1);
-}
-
 
 @method_id(200)
 fun demo200() {
@@ -1169,7 +1151,7 @@ fun demo204() {
         o.f1 = 10;
     }
     if (o.f2 != 2) {
-        return Cell<Fields9>.load(o.toCell());
+        return o.toCell().load();
     } else {
         o.f2 = 20;
     }
@@ -1421,7 +1403,7 @@ fun demo308() {
     var p = lazy Point.fromSlice(stringHexToSlice("0102"));
     __expect_lazy("[p] load x y");
     var cc = (p as PointOrPoint3d).toCell();
-    var ll = lazy Cell<PointOrPoint3d>.load(cc);
+    var ll = lazy cc.load();
     assert(cc.beginParse().remainingBitsCount() == 1+8+8, 100);
     __expect_lazy("[ll] lazy match");
     match (ll) {
@@ -1553,26 +1535,11 @@ fun demo316() {
     __expect_lazy("[p1] load x y z");
     val cp1 = (p1 = p1).toCell().load();
     __expect_lazy("[p2] load x y z");
-    val cp2 = Cell<Point3d>.load(((p2.x += 5, p2).1).toCell());
+    val cp2 = ((p2.x += 5, p2).1).toCell().load();
     __expect_lazy("[p3] load (bits32) y, save immutable (tail)");
     val y3 = (p3.y = 100 as int32).toCell().load();
 
     return (cp1, cp2, y3, p3.toCell().load());
-}
-
-@method_id(317)
-fun demo317() {
-    val src = StorageWithTail{ a: 11, b: null, c: 22 }.toCell();
-
-    var wrapped = lazy StorageWithTail.fromCell(src);
-    __expect_lazy("[wrapped] load a, save immutable (tail)");
-    wrapped.a = 33;
-    val wrappedOut = StorageWithTail.fromCell((wrapped = wrapped).makeCell());
-
-    return (
-        wrappedOut.a,
-        wrappedOut.c != null ? wrappedOut.c as int : -1
-    );
 }
 
 
@@ -1736,7 +1703,7 @@ fun demo406(s: slice) {
             var sum = 2 + msg.f2;
             return sum;
         }
-        else => { __expect_type(msg, "never"); throw 9999; }
+        else => { throw 9999; }
     }
     } catch(excno) { return excno }
 }
@@ -1832,21 +1799,6 @@ fun demo414(setObj: bool) {
         o1.opt.x = 99;
     }
     return o1.toCell().load();
-}
-
-@method_id(415)
-fun demo415(): int {
-    try {
-        match (val msg = lazy AOrB.fromSlice(createEmptySlice(), {
-            throwIfOpcodeDoesNotMatch: 777,
-            assertEndAfterReading: false,
-        })) {
-            A => return 1,
-            B => return 2,
-        }
-    } catch (excno) {
-        return excno;
-    }
 }
 
 
@@ -1958,7 +1910,6 @@ fun main() {
 @testcase | 160 |                 | 777
 @testcase | 161 |                 | 1
 @testcase | 162 | 8               | 17
-@testcase | 163 | 4               | 240 4
 
 @testcase | 200 |                 | 1
 @testcase | 201 |                 | 1 2 -1
@@ -1980,7 +1931,6 @@ fun main() {
 @testcase | 217 |                 | 514
 @testcase | 218 |                 | 2 20 11636 20
 @testcase | 219 |                 | -1 -1
-@testcase | 317 |                 | 33 22
 
 @testcase | 300 |                 | -1
 @testcase | 301 |                 | 1 -1
@@ -2028,7 +1978,6 @@ fun main() {
 @testcase | 413 |                             | 99 12 typeid-13 11 99 typeid-13
 @testcase | 414 | -1                          | 99 12 typeid-13
 @testcase | 414 | 0                           | (null) 80 42
-@testcase | 415 |                             | 777
 
 @fif_codegen
 """
@@ -2288,17 +2237,13 @@ fun main() {
 
 @fif_codegen
 """
-  demo411() PROC:<{
-    b{1} SDBEGINSQ
-    IFJMP:<{
-      DROP
-      DUMPSTK
-    }>
-    b{0} SDBEGINSQ
-    NIP
-    63 THROWIFNOT
-    1 PUSHINT
-    s0 DUMP DROP
+  demo411() PROC:<{             //  s
+    1 PLDU                      //  '10
+    IFJMP:<{                    //
+      DUMPSTK                   //
+    }>                          //
+    1 PUSHINT                   //  '11=1
+    s0 DUMP DROP                //
   }>
 """
 

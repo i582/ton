@@ -74,7 +74,7 @@ fun testDoUntilCodegen(i: bool, n: int) {
     var cnt = 0;
     do { cnt += 1; } while (i);
     do { cnt += 1; } while (!!i);
-    do { cnt += 1; } while (n != 0);
+    do { cnt += 1; } while (n);
     return (cnt, !i, !n);
 }
 

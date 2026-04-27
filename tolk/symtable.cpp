@@ -207,10 +207,6 @@ void StructFieldData::assign_resolved_type(TypePtr declared_type) {
   this->declared_type = declared_type;
 }
 
-void StructFieldData::assign_resolved_abi_type(TypePtr abi_client_type) {
-  this->abi_client_type = abi_client_type;
-}
-
 void StructFieldData::assign_default_value(AnyExprV default_value) {
   this->default_value = default_value;
 }

@@ -35,7 +35,7 @@ fun testLoop(x: int): int {
     var n = 0;
     while (x > 1) {
         n += 1;
-        if ((x & 1) != 0) {
+        if (x & 1) {
             x = 3 * x + 1;
         } else {
             x >>= 1;
@@ -57,13 +57,12 @@ fun test5(id: int): (int, int) {
 @method_id(106)
 fun test6(x: int): int {
     var i: int = 0;
-    var f: bool;
     do {
         i = i + 1;
         if (i > 5) {
             return 1;
         }
-        f = (i * i == 64);
+        var f: bool = (i * i == 64);
     } while (!f);
     return -1;
 }
