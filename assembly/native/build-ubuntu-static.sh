@@ -81,7 +81,7 @@ create_bundled_archive() {
     if [ -n "$zlib_static_lib" ]; then echo "addlib $zlib_static_lib"; fi
     echo "save"
     echo "end"
-  } | llvm-ar -M
+  } | llvm-ar-16 -M
   ranlib "$output"
 }
 
@@ -119,7 +119,7 @@ mapfile -t tolk_deps < <(query_static_link_archives crypto/fift)
 create_bundled_archive libemulator.a "${emulator_deps[@]}"
 
 rm -f libtolk.a libtolkfiftlib-renamed.a
-/usr/lib/llvm-16/bin/llvm-objcopy \
+llvm-objcopy-16 \
   tolk/libtolkfiftlib.a \
   libtolkfiftlib-renamed.a
 create_bundled_archive libtolk.a libtolkfiftlib-renamed.a "${tolk_deps[@]}"
